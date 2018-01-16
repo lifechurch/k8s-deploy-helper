@@ -79,13 +79,7 @@ fi
 echo "Kubernetes manifests deployed"
 
 echo
-echo "Waiting for deployments..."
-deployments=$(kubectl get deployments -n "$KUBE_NAMESPACE" -o=json | jq -r '.items[].metadata.name')
-for item in $deployments; do
-  kubectl rollout status -n "$KUBE_NAMESPACE" -w "deployment/$item"
-done
-
+echo "Waiting for deployment..."
+kubectl rollout status -n "$KUBE_NAMESPACE" -w "deployment/$CI_ENVIRONMENT_SLUG"
 echo "Application is accessible at: ${CI_ENVIRONMENT_URL}"
 echo ""
-
-
