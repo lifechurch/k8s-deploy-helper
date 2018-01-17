@@ -1,6 +1,7 @@
 FROM docker:17.11.0-ce-dind
 
 ENV HELM_VERSION="2.6.1" \
+    KUBECTL_VERSION="1.8.7" \
     HELM_SHA256="5e90d8ad17ba42e67dad97b5c2230707beadd2635f89d6ccc96f8a92777c42c4" \
     GLIBC_VERSION="2.23-r3" \
     PATH=/opt/kubernetes-deploy:$PATH
@@ -21,7 +22,7 @@ RUN wget -q -O /etc/apk/keys/sgerrand.rsa.pub https://raw.githubusercontent.com/
     && rm glibc-$GLIBC_VERSION.apk
 
 # Install kubectl
-RUN curl -L -o /usr/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl \
+RUN curl -L -o /usr/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl \
     && chmod +x /usr/bin/kubectl \
     && kubectl version --client
 
