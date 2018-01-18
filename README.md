@@ -1,7 +1,7 @@
 [![Docker Repository on Quay](https://quay.io/repository/lifechurch/k8s-deployer-helper/status "Docker Repository on Quay")](https://quay.io/repository/lifechurch/k8s-deployer-helper)
 
 # Description
-k8s-deploy-helper is a tool to help build and deploy containerized applications into Kubernetes using GitLab CI along with templated manifest files. Major features include: 
+k8s-deploy-helper is a tool to help build and deploy containerized applications into Kubernetes using GitLab CI along with templated manifest files. Major features include:
 
 * Automated Kubernetes Secret Management using GitLab UI
 * Per-Stage (review, staging, production) manifest deployment to Kubernetes
@@ -54,7 +54,7 @@ There is a lot of discussion around the best way to build docker images from wit
 In your GitLab Project, go to Settings->Integrations and setup Kubernetes. See GitLab's documentation on how to do this properly.
 
 ## GitLab Credentials
-By far the most annoying part of GitLab's CI system is that the credentials to connect to the registry that they pass down are only valid for a certain amount of time. While that works well for pushing a container into the registry, it doesn't work well for running things in Kubernetes. Because the credentials expire after a certain amount of time, if a pod reboots or some scaling event happens, Kubernetes will no longer be able to grab your containers from the GitLab registry if it's private. 
+By far the most annoying part of GitLab's CI system is that the credentials to connect to the registry that they pass down are only valid for a certain amount of time. While that works well for pushing a container into the registry, it doesn't work well for running things in Kubernetes. Because the credentials expire after a certain amount of time, if a pod reboots or some scaling event happens, Kubernetes will no longer be able to grab your containers from the GitLab registry if it's private.
 
 **The only workaround to this is to create an actual user in GitLab and make sure it has access to the necessary groups and projects.**
 
@@ -89,7 +89,7 @@ OR
 
 # Building Docker Images
 
-Our goal was to make sure Docker containers could be built as quickly as possible without the developers having to micromanage each docker build command on a per-project basis. 
+Our goal was to make sure Docker containers could be built as quickly as possible without the developers having to micromanage each docker build command on a per-project basis.
 
 **All that is required is that the Dockerfile be in the root of the repo**
 
@@ -159,7 +159,7 @@ staging:
   environment:
     name: staging
     url: https://stagingurl
-``` 
+```
 
 ## Directory Structure
 To deploy applications into Kubernetes, you need to place your templated manifest files into a kubernetes directory at the root of your repository. The deploy script will go into the kubernetes directory and kubectl apply -f every file in the directory.
@@ -258,7 +258,7 @@ This will evaluate to the following before it's applied:
 
 ## Secret Management
 
-For people just getting started with deploying apps to Kubernetes, one of the first questions is 'how do I keep secrets out of my repositories?' When we started building our deployment system, we wanted to create a system that allowed for easy out-of-repository management of secrets but didn't want to force vault on our developers quite yet, as we were trying to get more buy-in on k8s. 
+For people just getting started with deploying apps to Kubernetes, one of the first questions is 'how do I keep secrets out of my repositories?' When we started building our deployment system, we wanted to create a system that allowed for easy out-of-repository management of secrets but didn't want to force vault on our developers quite yet, as we were trying to get more buy-in on k8s.
 
 Instead, we opted to store our secrets in GitLab. This allowed us to:
 
@@ -270,7 +270,7 @@ To create a secret, go to your GitLab project and go to Settings->CI/CD->Secret 
 
 ```SECRET_mykeyname```
 
-During deployment, our scripts will look for all environment variables that start with the prefix ```SECRET_```, strip out the prefix and sticks the key and value into a kubernetes secret named ```$KUBE_NAMESPACE-secrets-$STAGE```, which translates to something like ```yournamespacename-secrets-production``` or ```yournamespacename-secrets-staging``` 
+During deployment, our scripts will look for all environment variables that start with the prefix ```SECRET_```, strip out the prefix and sticks the key and value into a kubernetes secret named ```$KUBE_NAMESPACE-secrets-$STAGE```, which translates to something like ```yournamespacename-secrets-production``` or ```yournamespacename-secrets-staging```
 
 In the example above, there would be an entry in the secret file named ```mykeyname``` with the corresponding value you put in GitLab. You can then access these secrets in your manifest files. The below will create an environment variable in your pod called mykeyname.
 
@@ -293,7 +293,7 @@ For example, let's say you have a secret called api_env, that needs to have diff
 Instead of creating a variable in GitLab called ```SECRET_api_env```, you would create three:
 
 ```
-REVIEW_api_env 
+REVIEW_api_env
 STAGING_api_env
 PRODUCTION_api_env
 ```
@@ -310,13 +310,30 @@ Combined with a templated section like below, this would pull in the secret from
       imagePullSecrets:
 ```
 
+# Deploy Events
+
+Currently NewRelic and Slack deploy events are supported.
+In Gitlab for NewRelic, you'll need to add a secret variable with the NewRelic API key and App Ids
+for each stage you want a deployment event for. Like:
+
+```
+NEWRELIC_API_KEY=xxx
+NEWRELIC_STAGING_APP_ID=xxx
+NEWRELIC_PRODUCTION_APP_ID=xxx
+```
+
+For Slack, simply set a Gitlab secret variable with the [Slack webhook url](https://api.slack.com/incoming-webhooks).
+
+```
+SLACK_WEBHOOK=xxx
+```
 
 # Contributing
 
 Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests.
 
 # Versioning
-To make sure the community can use this project with their sanity intact, we will be committing to incrementing major versions when we introduce breaking changes.  We anticipate this happening frequently, as this tool is still under heavy development. 
+To make sure the community can use this project with their sanity intact, we will be committing to incrementing major versions when we introduce breaking changes.  We anticipate this happening frequently, as this tool is still under heavy development.
 
 We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/lifechurch/k8s-deploy-helper/tags).
 
