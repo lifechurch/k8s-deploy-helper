@@ -62,7 +62,7 @@ echo "Finished creating secrets from GitLab variables"
 
 echo
 
-rollout = ()
+rollout=()
 
 echo "Deploying the Kubernetes manifests from your project repo"
 if [ -d "$CI_PROJECT_DIR/kubernetes" ]; then
