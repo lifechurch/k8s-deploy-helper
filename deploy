@@ -71,7 +71,7 @@ if [ -d "$CI_PROJECT_DIR/kubernetes" ]; then
     manifest_kind=$(yq read kubetemp.yaml kind)
     shopt -s nocasematch
     if [[ "$manifest_kind" == "deployment" ]] || [[ "$manifest_kind" == "statefulset" ]] || [[ "$manifest_kind" == "daemonset" ]]; then
-      manifest_name=$(yq read $filename metadata.name)
+      manifest_name=$(yq read kubetemp.yaml metadata.name)
       rollout+=("$manifest_kind/$manifest_name")
     fi
     kubectl apply -f kubetemp.yaml
@@ -83,7 +83,7 @@ if [ -d "$CI_PROJECT_DIR/kubernetes" ]; then
       manifest_kind=$(yq read kubetemp.yaml kind)
       shopt -s nocasematch
       if [[ "$manifest_kind" == "deployment" ]] || [[ "$manifest_kind" == "statefulset" ]] || [[ "$manifest_kind" == "daemonset" ]]; then
-        manifest_name=$(yq read $filename metadata.name)
+        manifest_name=$(yq read kubetemp.yaml metadata.name)
         rollout+=("$manifest_kind/$manifest_name")
       fi
       kubectl apply -f kubetemp.yaml
@@ -93,7 +93,7 @@ fi
 echo "Kubernetes manifests deployed"
 
 echo
-echo "Checking status of rollouts"
+echo "Checking rollout status"
 for item in ${rollout[@]}; do
   kubectl rollout status -n "$KUBE_NAMESPACE" -w "$item"
 done
