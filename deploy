@@ -62,16 +62,30 @@ echo "Finished creating secrets from GitLab variables"
 
 echo
 
+rollout = ()
+
 echo "Deploying the Kubernetes manifests from your project repo"
 if [ -d "$CI_PROJECT_DIR/kubernetes" ]; then
   for filename in $CI_PROJECT_DIR/kubernetes/*.yaml; do
     envsubst < $filename > kubetemp.yaml
+    manifest_kind=$(yq read kubetemp.yaml kind)
+    shopt -s nocasematch
+    if [[ "$manifest_kind" == "deployment" ]] || [[ "$manifest_kind" == "statefulset" ]] || [[ "$manifest_kind" == "daemonset" ]]; then
+      manifest_name=$(yq read $filename metadata.name)
+      rollout+=("$manifest_kind/$manifest_name")
+    fi
     kubectl apply -f kubetemp.yaml
   done
 
   if [ -d "$CI_PROJECT_DIR/kubernetes/$CI_JOB_STAGE" ]; then
     for filename in $CI_PROJECT_DIR/kubernetes/$CI_JOB_STAGE/*.yaml; do
       envsubst < $filename > kubetemp.yaml
+      manifest_kind=$(yq read kubetemp.yaml kind)
+      shopt -s nocasematch
+      if [[ "$manifest_kind" == "deployment" ]] || [[ "$manifest_kind" == "statefulset" ]] || [[ "$manifest_kind" == "daemonset" ]]; then
+        manifest_name=$(yq read $filename metadata.name)
+        rollout+=("$manifest_kind/$manifest_name")
+      fi
       kubectl apply -f kubetemp.yaml
     done
   fi
@@ -79,7 +93,10 @@ fi
 echo "Kubernetes manifests deployed"
 
 echo
-echo "Waiting for deployment..."
-kubectl rollout status -n "$KUBE_NAMESPACE" -w "deployment/$CI_ENVIRONMENT_SLUG"
+echo "Checking status of rollouts"
+for item in ${rollout[@]}; do
+  kubectl rollout status -n "$KUBE_NAMESPACE" -w "$item"
+done
+
 echo "Application is accessible at: ${CI_ENVIRONMENT_URL}"
 echo ""
