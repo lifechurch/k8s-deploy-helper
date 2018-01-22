@@ -92,6 +92,17 @@ if [ -d "$CI_PROJECT_DIR/kubernetes" ]; then
 fi
 echo "Kubernetes manifests deployed"
 
+get_deploy_events
+if [ "$NEWRELIC_API_KEY" ] && [ "$NEWRELIC_APP_ID" ]; then
+  echo "Sending deploy event to NewRelic..."
+  curl -silent -H "x-api-key:$NEWRELIC_API_KEY" -d "deployment[application_id]=$NEWRELIC_APP_ID&deployment[user]=k8s-deploy" https://rpm.newrelic.com/deployments.xml > /dev/null || true
+fi
+
+if [ "$SLACK_WEBHOOK_URL" ]; then
+  echo "Sending deploy event to Slack channel..."
+  curl -silent -X POST -H 'Content-type: application/json' --data "{\"text\": \"Kubernetes Deployment\", \"attachments\": [ { \"color\": \"good\", \"text\": \"Successfully deployed to $CI_JOB_STAGE\" }]}" $SLACK_WEBHOOK_URL > /dev/null
+fi
+
 echo
 echo "Checking rollout status"
 for item in ${rollout[@]}; do

@@ -110,3 +110,21 @@ get_secrets() {
     done
   fi
 }
+
+get_deploy_events() {
+  if env | grep -i -e '^NEWRELIC_' > /dev/null; then
+    NEWRELIC=$(env | grep -i -e '^NEWRELIC_')
+    for i in $NEWRELIC; do
+        if echo "$i" | grep -i -e "API_KEY" > /dev/null; then
+            export NEWRELIC_API_KEY=$(echo $i | cut -d'=' -f2)
+        fi
+        if echo "$i" | grep -i -e "$CI_JOB_STAGE" | grep -i -e "APP_ID" > /dev/null; then
+            export NEWRELIC_APP_ID=$(echo $i | cut -d'=' -f2)
+        fi
+    done
+  fi
+
+  if env | grep -i -e '^SLACK_WEBHOOK' > /dev/null; then
+    export SLACK_WEBHOOK_URL=$(env | grep -i -e '^SLACK_WEBHOOK' | cut -d'=' -f2)
+  fi
+}
