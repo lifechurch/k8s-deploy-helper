@@ -19,22 +19,22 @@ if [[ -n "$CI_REGISTRY_USER" ]]; then
 	echo ""
 fi
 
-echo "Building application..."
+echo "Tagging application as latest..."
 
 if [ "x$1" != "x" ]; then
 	echo "Building Dockerfile-based application using the Dockerfile at $1"
 	export SHORT=$(echo "$1" | cut -d'-' -f2-)
-	docker pull $CI_REGISTRY_IMAGE:$SHORT-latest || true
-	docker build --cache-from "$CI_REGISTRY_IMAGE:$SHORT-latest" -t "$CI_REGISTRY_IMAGE:$SHORT-$CI_REGISTRY_TAG" $buildargs -f $1 .
+	docker pull $CI_REGISTRY_IMAGE:$SHORT-$CI_REGISTRY_TAG
+        docker tag $CI_REGISTRY_IMAGE:$SHORT-$CI_REGISTRY_TAG $CI_REGISTRY_IMAGE:$SHORT-latest
 	echo "Pushing to GitLab Container Registry..."
-	docker push "$CI_REGISTRY_IMAGE:$SHORT-$CI_REGISTRY_TAG"
+        docker push $CI_REGISTRY_IMAGE:$SHORT-latest
 
 elif [[ -f Dockerfile ]]; then
 	echo "Building Dockerfile-based application..."
-	docker pull $CI_REGISTRY_IMAGE:latest || true
-	docker build --cache-from "$CI_REGISTRY_IMAGE:latest" -t "$CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG" $buildargs .
+	docker pull $CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG
+        docker tag $CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG $CI_REGISTRY_IMAGE:latest
 	echo "Pushing to GitLab Container Registry..."
-	docker push "$CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG"
+	docker push "$CI_REGISTRY_IMAGE:latest"
 else
 	echo "Dockerfile not found at root of repo. Exiting."
 	exit 1
