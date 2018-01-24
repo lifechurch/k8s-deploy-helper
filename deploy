@@ -1,0 +1,113 @@
+#!/bin/bash
+
+export DOLLAR='$'
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+  DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+done
+
+export DEPLOY_ROOT_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
+source "$DEPLOY_ROOT_DIR/src/common.bash"
+
+ensure_deploy_variables
+create_kubeconfig
+
+CI_ENVIRONMENT_HOSTNAME="${CI_ENVIRONMENT_URL}"
+CI_ENVIRONMENT_HOSTNAME="${CI_ENVIRONMENT_HOSTNAME/http:\/\//}"
+CI_ENVIRONMENT_HOSTNAME="${CI_ENVIRONMENT_HOSTNAME/https:\/\//}"
+
+export CI_ENVIRONMENT_HOSTNAME=$CI_ENVIRONMENT_HOSTNAME
+
+echo "Creating namespace..."
+cat <<EOF | kubectl apply -f -
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: $KUBE_NAMESPACE
+EOF
+echo "Namespace created"
+echo
+
+echo "Creating registry secret"
+kubectl create secret -n $KUBE_NAMESPACE \
+  docker-registry gitlab-registry \
+  --docker-server="$CI_REGISTRY" \
+  --docker-username="$GL_USERNAME" \
+  --docker-password="$GL_PASSWORD" \
+  --docker-email="$GITLAB_USER_EMAIL" \
+  -o yaml --dry-run | kubectl apply -n $KUBE_NAMESPACE -f -
+echo "Registry secret created"
+
+echo
+
+echo "Creating secrets from GitLab variables"
+secrets=$(get_secrets)
+
+if [[ $secrets ]]; then
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Secret
+metadata:
+  name: $KUBE_NAMESPACE-secrets-$STAGE
+  namespace: $KUBE_NAMESPACE
+type: Opaque
+data:
+$secrets
+EOF
+fi
+echo "Finished creating secrets from GitLab variables"
+
+echo
+
+rollout=()
+
+echo "Deploying the Kubernetes manifests from your project repo"
+if [ -d "$CI_PROJECT_DIR/kubernetes" ]; then
+  for filename in $CI_PROJECT_DIR/kubernetes/*.yaml; do
+    envsubst < $filename > kubetemp.yaml
+    manifest_kind=$(yq read kubetemp.yaml kind)
+    shopt -s nocasematch
+    if [[ "$manifest_kind" == "deployment" ]] || [[ "$manifest_kind" == "statefulset" ]] || [[ "$manifest_kind" == "daemonset" ]]; then
+      manifest_name=$(yq read kubetemp.yaml metadata.name)
+      rollout+=("$manifest_kind/$manifest_name")
+    fi
+    kubectl apply -f kubetemp.yaml
+  done
+
+  if [ -d "$CI_PROJECT_DIR/kubernetes/$CI_JOB_STAGE" ]; then
+    for filename in $CI_PROJECT_DIR/kubernetes/$CI_JOB_STAGE/*.yaml; do
+      envsubst < $filename > kubetemp.yaml
+      manifest_kind=$(yq read kubetemp.yaml kind)
+      shopt -s nocasematch
+      if [[ "$manifest_kind" == "deployment" ]] || [[ "$manifest_kind" == "statefulset" ]] || [[ "$manifest_kind" == "daemonset" ]]; then
+        manifest_name=$(yq read kubetemp.yaml metadata.name)
+        rollout+=("$manifest_kind/$manifest_name")
+      fi
+      kubectl apply -f kubetemp.yaml
+    done
+  fi
+fi
+echo "Kubernetes manifests deployed"
+
+get_deploy_events
+if [ "$NEWRELIC_API_KEY" ] && [ "$NEWRELIC_APP_ID" ]; then
+  echo "Sending deploy event to NewRelic..."
+  curl -silent -H "x-api-key:$NEWRELIC_API_KEY" -d "deployment[application_id]=$NEWRELIC_APP_ID&deployment[user]=k8s-deploy" https://rpm.newrelic.com/deployments.xml > /dev/null || true
+fi
+
+if [ "$SLACK_WEBHOOK_URL" ]; then
+  echo "Sending deploy event to Slack channel..."
+  curl -silent -X POST -H 'Content-type: application/json' --data "{\"text\": \"Kubernetes Deployment\", \"attachments\": [ { \"color\": \"good\", \"text\": \"Successfully deployed to $CI_JOB_STAGE\" }]}" $SLACK_WEBHOOK_URL > /dev/null
+fi
+
+echo
+echo "Checking rollout status"
+for item in ${rollout[@]}; do
+  kubectl rollout status -n "$KUBE_NAMESPACE" -w "$item"
+done
+
+echo "Application is accessible at: ${CI_ENVIRONMENT_URL}"
+echo ""
