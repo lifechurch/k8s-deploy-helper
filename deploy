@@ -69,12 +69,31 @@ if [ -d "$CI_PROJECT_DIR/kubernetes" ]; then
   for filename in $CI_PROJECT_DIR/kubernetes/*.yaml; do
     envsubst < $filename > kubetemp.yaml
     manifest_kind=$(yq read kubetemp.yaml kind)
+    track=$(yq read kubetemp.yaml metadata.labels.track)
     shopt -s nocasematch
     if [[ "$manifest_kind" == "deployment" ]] || [[ "$manifest_kind" == "statefulset" ]] || [[ "$manifest_kind" == "daemonset" ]]; then
-      manifest_name=$(yq read kubetemp.yaml metadata.name)
-      rollout+=("$manifest_kind/$manifest_name")
+      if [[ "$track" != "canary" && "$ISCANARY" == "false" ]]; then
+        manifest_name=$(yq read kubetemp.yaml metadata.name)
+        rollout+=("$manifest_kind/$manifest_name")
+      elif [[ "$track" == "canary" && "$ISCANARY" == "true" ]]; then
+        manifest_name=$(yq read kubetemp.yaml metadata.name)
+        rollout+=("$manifest_kind/$manifest_name")
+      fi
     fi
-    kubectl apply -f kubetemp.yaml
+
+    
+    if [[ "$track" == "canary" && "$ISCANARY" == "true" ]]; then
+      echo "We are in canary mode and this is a canary manifest, deploying"
+      kubectl apply -f kubetemp.yaml
+    elif [[ "$track" == "stable" && "$ISCANARY" == "true" ]]; then
+      echo "We are in canary mode and this is a stable manifest, skipping"
+      continue
+    elif [[ "$track" == "canary" && "$ISCANARY" == "false" ]]; then
+      echo "We are not in canary mode, but this is a canary manifest, skipping"
+      continue
+    else
+      kubectl apply -f kubetemp.yaml
+    fi
   done
 
   if [ -d "$CI_PROJECT_DIR/kubernetes/$CI_JOB_STAGE" ]; then

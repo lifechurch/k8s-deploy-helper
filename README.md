@@ -2,6 +2,7 @@
 k8s-deploy-helper is a tool to help build and deploy containerized applications into Kubernetes using GitLab CI along with templated manifest files. Major features include:
 
 * Automated Kubernetes Secret Management using GitLab's UI
+* Canary deploys
 * Templated manifest deployments to Kubernetes living in the same repo as the code, giving developers more control.
 * Easy, standardized image creation with build arguments and multiple Dockerfile support
 * Standardized container tag conventions to allow for easy rollbacks through GitLab UI and better caching
@@ -230,6 +231,13 @@ spec:
 You can see it looks very much like a normal kubernetes manifest file, with one big exception, variables. Rather than invent a more complex solution that covers more edge cases, our quick solution was to simply use environment variable names within our manifest files, and then use the envsubst command to substitute the values into the file at deploy time, before we apply the manifest file. While this makes the manifests harder to read and create, there are gains in flexibility and customization.
 
 **The biggest gotcha with this is that every environment variable you use in your manifest have to exist, or templating will break.**
+
+### Canary Deploys
+As of 2.0, k8s-deploy-helper supports canary deploys. GitLab uses a convention of setting a track label to canary in order to track which pods/deployments belong to the canary. Canary deploys work a little differently than the normal workflow. We assume that canary deploys are for production only and when our script detects a $CI_JOB_STAGE of canary, it sets a flag that it's a canary deploy, and then overwrites $CI_JOB_STAGE to be "production" so that the normal production things can be deployed.
+
+When that flag is set, it looks in all deployments for a metadata.labels.track spec, and will only deploy manifests with the track label set to canary when it's in the canary stage.
+
+Check out our (example repo)[https://www.github.com/lifechurch/example-go] for canary manifest examples.
 
 ### $STAGE
 All of the variables provided above are supplied by GitLab except for one: ```$STAGE``` - This is a special environment variable our deployer creates in order to help with review apps. If this is called from within a GitLab CI stage called review, the value will be GitLab's $CI_ENVIRONMENT_SLUG in order to create a unique name for the review app. If it's being called from any other stage, it will default to the stage name you are currently executing in GitLab ($CI_JOB_STAGE).
