@@ -24,15 +24,25 @@ echo "Building application..."
 if [ "x$1" != "x" ]; then
 	echo "Building Dockerfile-based application using the Dockerfile at $1"
 	export SHORT=$(echo "$1" | cut -d'-' -f2-)
-	docker pull $CI_REGISTRY_IMAGE:$SHORT-latest || true
-	docker build --cache-from "$CI_REGISTRY_IMAGE:$SHORT-latest" -t "$CI_REGISTRY_IMAGE:$SHORT-$CI_REGISTRY_TAG" $buildargs -f $1 .
+	if [ "x$KDH_SKIP_LATEST" == "xtrue" ]; then
+		echo "KDH_SKIP_LATEST is true, not building from latest"
+		docker build -t "$CI_REGISTRY_IMAGE:$SHORT-$CI_REGISTRY_TAG" $buildargs -f $1 .
+	else
+		docker pull $CI_REGISTRY_IMAGE:$SHORT-latest || true
+		docker build --cache-from "$CI_REGISTRY_IMAGE:$SHORT-latest" -t "$CI_REGISTRY_IMAGE:$SHORT-$CI_REGISTRY_TAG" $buildargs -f $1 .
+	fi
 	echo "Pushing to GitLab Container Registry..."
 	docker push "$CI_REGISTRY_IMAGE:$SHORT-$CI_REGISTRY_TAG"
 
 elif [[ -f Dockerfile ]]; then
 	echo "Building Dockerfile-based application..."
-	docker pull $CI_REGISTRY_IMAGE:latest || true
-	docker build --cache-from "$CI_REGISTRY_IMAGE:latest" -t "$CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG" $buildargs .
+	if [ "x$KDH_SKIP_LATEST" == "xtrue" ]; then
+		echo "KDH_SKIP_LATEST is true, not building from latest"
+		docker build -t "$CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG" $buildargs .
+	else
+		docker pull $CI_REGISTRY_IMAGE:latest || true
+		docker build --cache-from "$CI_REGISTRY_IMAGE:latest" -t "$CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG" $buildargs .
+	fi
 	echo "Pushing to GitLab Container Registry..."
 	docker push "$CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG"
 else
