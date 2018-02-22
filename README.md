@@ -145,6 +145,9 @@ build_worker:
     - branches
 ```
 
+## Don't use latest tag to build
+By setting the ```KDH_SKIP_LATEST``` variable to the value ```true``` in GitLab CI, k8s-deploy-helper will skip using the latest tag as the --cache-from source. This is helpful if you have a project that exclusively uses one GitLab Runner, as you'll be able to pull more layers from Docker's cache in less time.
+
 # Kubernetes Deployment
 
 Here's a sample of kicking the deployer helper off in the .gitlab-ci.yml
