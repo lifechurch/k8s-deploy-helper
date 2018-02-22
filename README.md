@@ -66,7 +66,9 @@ You can do this in one of two ways:
 
 OR
 
-2) If your GitLab setup is only used by one team, or if you're ok with the security ramifications that this creates, you could configure the credentials in your runner, so your developers don't have to complete this step. The runner config would look something like:
+2) If your Gitlab setup allows this, create a group-level Secret Variable by going to your Group Settings->CI/CD->Secret Variables, and creating them there. Note that this exposes this user to ALL builds made in that specific Gitlab Group!
+
+3) If your GitLab setup is only used by one team, or if you're ok with the security ramifications that this creates, you could configure the credentials in your runner, so your developers don't have to complete this step. The runner config would look something like:
 
 ```
 [[runners]]
