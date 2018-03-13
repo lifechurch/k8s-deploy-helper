@@ -1,3 +1,5 @@
+[![Docker Repository on Quay](https://quay.io/repository/lifechurch/k8s-deploy-helper/status "Docker Repository on Quay")](https://quay.io/repository/lifechurch/k8s-deploy-helper)
+
 # Description
 k8s-deploy-helper is a tool to help build and deploy containerized applications into Kubernetes using GitLab CI along with templated manifest files. Major features include:
 
