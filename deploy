@@ -81,7 +81,7 @@ if [ -d "$CI_PROJECT_DIR/kubernetes" ]; then
       fi
     fi
 
-    
+
     if [[ "$track" == "canary" && "$ISCANARY" == "true" ]]; then
       echo "We are in canary mode and this is a canary manifest, deploying"
       kubectl apply -f kubetemp.yaml
@@ -114,12 +114,24 @@ echo "Kubernetes manifests deployed"
 get_deploy_events
 if [ "$NEWRELIC_API_KEY" ] && [ "$NEWRELIC_APP_ID" ]; then
   echo "Sending deploy event to NewRelic..."
-  curl -silent -H "x-api-key:$NEWRELIC_API_KEY" -d "deployment[application_id]=$NEWRELIC_APP_ID&deployment[user]=k8s-deploy" https://rpm.newrelic.com/deployments.xml > /dev/null || true
+  curl --silent -H "x-api-key:$NEWRELIC_API_KEY" -d "deployment[application_id]=$NEWRELIC_APP_ID&deployment[user]=k8s-deploy" https://rpm.newrelic.com/deployments.xml > /dev/null || true
 fi
 
 if [ "$SLACK_WEBHOOK_URL" ]; then
   echo "Sending deploy event to Slack channel..."
-  curl -silent -X POST -H 'Content-type: application/json' --data "{\"text\": \"Kubernetes Deployment\", \"attachments\": [ { \"color\": \"good\", \"text\": \"Successfully deployed to $CI_JOB_STAGE\" }]}" $SLACK_WEBHOOK_URL > /dev/null
+  curl --silent -X POST -H 'Content-type: application/json' --data "{\"text\": \"Kubernetes Deployment\", \"attachments\": [ { \"color\": \"good\", \"text\": \"Successfully deployed to $CI_JOB_STAGE\" }]}" $SLACK_WEBHOOK_URL > /dev/null || true
+fi
+
+if [ "$DATADOG_API_KEY" ]; then
+  echo "Sending deploy event to Datadog..."
+  URL="https://app.datadoghq.com/api/v1/events?api_key=$DATADOG_API_KEY"
+  if [ "$DATADOG_APP_KEY" ]; then
+    URL="$URL&app_key=$DATADOG_APP_KEY"
+  fi
+  if [[ -z "$DATADOG_TEXT" ]]; then
+      DATADOG_TEXT="$CI_JOB_STAGE $CI_REGISTRY_TAG"
+  fi
+  curl -X POST -H "Content-type: application/json" -d "{\"title\": \"Kubernetes $CI_JOB_STAGE Deployment\", \"text\": \"$DATADOG_TEXT\", \"priority\": \"normal\", \"tags\": [$DATADOG_TAGS], \"alert_type\": \"info\", \"source_type_name\": \"my_apps\"}" "$URL" > /dev/null || true
 fi
 
 echo

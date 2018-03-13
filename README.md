@@ -324,7 +324,8 @@ Combined with a templated section like below, this would pull in the secret from
 
 # Deploy Events
 
-Currently NewRelic and Slack deploy events are supported.
+Currently NewRelic, Slack, and Datadog deploy events are supported.
+
 In Gitlab for NewRelic, you'll need to add a secret variable with the NewRelic API key and App Ids
 for each stage you want a deployment event for. Like:
 
@@ -338,6 +339,27 @@ For Slack, simply set a Gitlab secret variable with the [Slack webhook url](http
 
 ```
 SLACK_WEBHOOK=xxx
+```
+
+For Datadog, you *must* set your Datadog API key with:
+
+```
+DATADOG_API_KEY=xxx
+```
+
+Optionally, you may set an [app key, message text, and tags to send to Datadog.] (https://docs.datadoghq.com/api/?lang=bash#post-an-event)
+
+The text attribute supports markdown. [This help article](https://help.datadoghq.com/hc/en-us/articles/204778779)
+best explains how to add markdown text to the deploy event.
+
+The DATADOG_TAGS variable can be used to send one or more tags with the event. Because this is an
+array in the POST, you *must* include quotes around each value. Multiple tags should then be
+separated by commas.
+
+```
+DATADOG_APP_KEY=xxx
+DATADOG_TAGS="deploys:api","foo:bar"
+DATADOG_TEXT=\n%%%\n### Success\n%%%
 ```
 
 # Contributing
