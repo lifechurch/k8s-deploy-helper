@@ -1,3 +1,10 @@
+# Version 2.0.2
+
+Docker Image: quay.io/lifechurch/k8s-deploy-helper:2.0.2
+
+## What's New?
+* Add DataDog [deployment event](https://github.com/lifechurch/k8s-deploy-helper#deploy-events) support
+
 # Version 2.0.1
 
 Docker Image: quay.io/lifechurch/k8s-deploy-helper:2.0.1
