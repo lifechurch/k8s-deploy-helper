@@ -16,7 +16,7 @@ create_kubeconfig
 if [ "x$1" != "x" ]; then
   echo "Removing all deployment objects for $1"
   kubectl delete deploy,pod,rs,svc,ing,ds -l "$1" -n "$KUBE_NAMESPACE"
-elif
+else
   echo "Removing all deployment objects"
   kubectl delete deploy,pod,rs,svc,ing,ds -l "app=$CI_ENVIRONMENT_SLUG" -n "$KUBE_NAMESPACE"
 fi
