@@ -17,7 +17,7 @@ RUN apk add -U openssl curl tar gzip bash ca-certificates git wget jq libintl co
 COPY / /opt/kubernetes-deploy/
 
 # Install glibc for Alpine
-RUN wget -q -O /etc/apk/keys/sgerrand.rsa.pub https://raw.githubusercontent.com/sgerrand/alpine-pkg-glibc/master/sgerrand.rsa.pub \ 
+RUN wget -q -O /etc/apk/keys/sgerrand.rsa.pub https://alpine-pkgs.sgerrand.com/sgerrand.rsa.pub \ 
     && wget https://github.com/sgerrand/alpine-pkg-glibc/releases/download/$GLIBC_VERSION/glibc-$GLIBC_VERSION.apk \ 
     && apk add glibc-$GLIBC_VERSION.apk \ 
     && rm glibc-$GLIBC_VERSION.apk
