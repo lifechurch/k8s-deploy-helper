@@ -11,8 +11,6 @@ export DEPLOY_ROOT_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 source "$DEPLOY_ROOT_DIR/src/common.bash"
 
-buildargs=$(get_buildargs)
-
 if [[ -n "$CI_REGISTRY_USER" ]]; then
 	echo "Logging to GitLab Container Registry with CI credentials..."
 	docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
