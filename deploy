@@ -35,8 +35,8 @@ echo "Creating registry secret"
 kubectl create secret -n $KUBE_NAMESPACE \
   docker-registry gitlab-registry \
   --docker-server="$CI_REGISTRY" \
-  --docker-username="$GL_USERNAME" \
-  --docker-password="$GL_PASSWORD" \
+  --docker-username="$CI_DEPLOY_USER" \
+  --docker-password="$CI_DEPLOY_PASSWORD" \
   --docker-email="$GITLAB_USER_EMAIL" \
   -o yaml --dry-run | kubectl apply -n $KUBE_NAMESPACE -f -
 echo "Registry secret created"
@@ -44,7 +44,7 @@ echo "Registry secret created"
 echo
 
 echo "Creating secrets from GitLab variables"
-secrets=$(get_secrets)
+secrets=$(get_secrets_for_creation)
 
 if [[ $secrets ]]; then
 cat <<EOF | kubectl apply -f -
@@ -60,56 +60,98 @@ EOF
 fi
 echo "Finished creating secrets from GitLab variables"
 
-echo
+echo "Creating a file at /tmp/secrets.yaml template for {{SECRETS}} use"
+get_secrets_for_usage
 
 rollout=()
+mkdir -p /tmp/kubernetes
 
-echo "Deploying the Kubernetes manifests from your project repo"
+echo "Rendering your manifest templates."
 if [ -d "$CI_PROJECT_DIR/kubernetes" ]; then
+  # Move any stage specific manifests into the main yaml
+  echo "Moving stage specific yamls into job. Don't worry about any errors printed next"
+  cp $CI_PROJECT_DIR/kubernetes/$CI_JOB_STAGE/*.yaml $CI_PROJECT_DIR/kubernetes || true
+
+  # Render every template file using envsubst and look for {{SECRETS}} command
   for filename in $CI_PROJECT_DIR/kubernetes/*.yaml; do
-    envsubst < $filename > kubetemp.yaml
-    manifest_kind=$(yq read kubetemp.yaml kind)
-    track=$(yq read kubetemp.yaml metadata.labels.track)
-    shopt -s nocasematch
-    if [[ "$manifest_kind" == "deployment" ]] || [[ "$manifest_kind" == "statefulset" ]] || [[ "$manifest_kind" == "daemonset" ]]; then
-      if [[ "$track" != "canary" && "$ISCANARY" == "false" ]]; then
-        manifest_name=$(yq read kubetemp.yaml metadata.name)
-        rollout+=("$manifest_kind/$manifest_name")
-      elif [[ "$track" == "canary" && "$ISCANARY" == "true" ]]; then
-        manifest_name=$(yq read kubetemp.yaml metadata.name)
-        rollout+=("$manifest_kind/$manifest_name")
-      fi
+    echo "Rendering $filename"
+    basefile=$(basename $filename)
+    if $(grep $'\t' $filename); then
+        echo "Found a tab in $filename. Tabs are not allowed in manifests. Quitting."
+        exit 1
     fi
-
-
-    if [[ "$track" == "canary" && "$ISCANARY" == "true" ]]; then
-      echo "We are in canary mode and this is a canary manifest, deploying"
-      kubectl apply -f kubetemp.yaml
-    elif [[ "$track" == "stable" && "$ISCANARY" == "true" ]]; then
-      echo "We are in canary mode and this is a stable manifest, skipping"
-      continue
-    elif [[ "$track" == "canary" && "$ISCANARY" == "false" ]]; then
-      echo "We are not in canary mode, but this is a canary manifest, skipping"
-      continue
-    else
-      kubectl apply -f kubetemp.yaml
-    fi
-  done
-
-  if [ -d "$CI_PROJECT_DIR/kubernetes/$CI_JOB_STAGE" ]; then
-    for filename in $CI_PROJECT_DIR/kubernetes/$CI_JOB_STAGE/*.yaml; do
-      envsubst < $filename > kubetemp.yaml
-      manifest_kind=$(yq read kubetemp.yaml kind)
-      shopt -s nocasematch
-      if [[ "$manifest_kind" == "deployment" ]] || [[ "$manifest_kind" == "statefulset" ]] || [[ "$manifest_kind" == "daemonset" ]]; then
-        manifest_name=$(yq read kubetemp.yaml metadata.name)
-        rollout+=("$manifest_kind/$manifest_name")
-      fi
-      kubectl apply -f kubetemp.yaml
+    envsubst < $filename > /tmp/kubernetes/$basefile
+    while grep "{{SECRETS}}" /tmp/kubernetes/$basefile | grep -v "#"; do
+      grep -n "{{SECRETS}}" /tmp/kubernetes/$basefile | grep -v "#" | head -n1 | while read -r line ; do
+        lineno=$(echo $line | cut -d':' -f1)
+        spaces=$(sed "${lineno}!d" /tmp/kubernetes/$basefile | awk -F'[^ \t]' '{print length($1)}')
+        spaces=$((spaces-1))
+        # Delete line that had {{SECRETS}}
+        sed -i -e "${lineno}d" /tmp/kubernetes/$basefile
+        while IFS='' read -r secretline || [[ -n "$secretline" ]]; do
+          newline=$(printf "%*s%s" $spaces "" "$secretline")
+          sed -i "${lineno}i\ ${newline}" /tmp/kubernetes/$basefile
+          lineno=$((lineno+1))
+        done < "/tmp/secrets.yaml"
+      done
     done
-  fi
+    echo "Rendered manifest template to /tmp/kubernetes/$basefile"
+  done
+  echo "Done rendering templates."
+
+  echo "Evaluating rendered manifests."
+  # Dump the templated manifests to the log for easier debugging and run kubeval against each
+  for filename in /tmp/kubernetes/*.yaml; do
+    echo "Running kubeval against $filename"
+    echo
+    cat "$filename"
+    echo
+    kubeval $filename 
+  done
+  echo "Evaluation finished."
+  echo
+  echo "Applying rendered templates"
+  # Start applying templates to Kubernetes
+  for filename in /tmp/kubernetes/*.yaml; do
+    # Grab the kind of manifest we're dealing with (ie, deployment, statefulset, etc..)
+    manifest_kind=$(yq read $filename kind)
+    # Grab the track label, which GitLab uses to tell if something is a canary or not
+    track=$(yq read $filename metadata.labels.track)
+    shopt -s nocasematch
+    # Build a list of application deployments we need to monitor and apply
+    if [[ "$manifest_kind" == "deployment" ]] || [[ "$manifest_kind" == "statefulset" ]] || [[ "$manifest_kind" == "daemonset" ]]; then
+      # If we are in a canary deploymentt
+      if [[ "$ISCANARY" == "true" && "$track" == "stable" ]]; then
+        echo "We are in a canary deployment and this is a stable manifest. Beginning manifest transformation."
+        sed -i -e 's/track: stable/track: canary/g' $filename
+        appname=$(yq r $filename metadata.name)
+        sed -i -e "s/name: $appname/name: canary-$appname/g" $filename
+        echo "Done transforming manifest, going to cat it out so you can see what it's doing"
+        cat $filename
+      fi
+
+      # If this is a kind of application manifest and isn't something we need to worry about skipping, then add it to the rollout check
+      echo "$filename is a deployment/statefulset or daemonset, so we are going to check to make sure it deployed correctly."
+      manifest_name=$(yq read $filename metadata.name)
+      rollout+=("$manifest_kind/$manifest_name")
+    fi
+
+    # If we get here and are still in this loop, it means it should be safe to apply the manifest  
+    echo "Applying manifest: $filename"
+    kubectl apply -f $filename
+  done
+  echo "Kubernetes manifests deployed"
+else
+  echo "No kubernetes directory was found. Exiting."
+  exit 1
 fi
-echo "Kubernetes manifests deployed"
+
+echo
+echo "Checking rollout status"
+for item in ${rollout[@]}; do
+  echo "Checking rollout status for $item"
+  kubectl rollout status -n "$KUBE_NAMESPACE" -w "$item"
+done
 
 get_deploy_events
 if [ "$NEWRELIC_API_KEY" ] && [ "$NEWRELIC_APP_ID" ]; then
@@ -134,11 +176,6 @@ if [ "$DATADOG_API_KEY" ]; then
   curl -X POST -H "Content-type: application/json" -d "{\"title\": \"Kubernetes $CI_JOB_STAGE Deployment\", \"text\": \"$DATADOG_TEXT\", \"priority\": \"normal\", \"tags\": [$DATADOG_TAGS], \"alert_type\": \"info\", \"source_type_name\": \"my_apps\"}" "$URL" > /dev/null || true
 fi
 
-echo
-echo "Checking rollout status"
-for item in ${rollout[@]}; do
-  kubectl rollout status -n "$KUBE_NAMESPACE" -w "$item"
-done
 
 echo "Application is accessible at: ${CI_ENVIRONMENT_URL}"
 echo ""

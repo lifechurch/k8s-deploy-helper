@@ -46,23 +46,31 @@ create_kubeconfig() {
 
 ensure_deploy_variables() {
     if [[ -z "$KUBE_URL" ]]; then
-      echo "Missing KUBE_URL."
+      echo "ERROR: Missing KUBE_URL. Make sure to configure the Kubernetes Cluster in Operations->Kubernetes"
       exit 1
     fi
     if [[ -z "$KUBE_TOKEN" ]]; then
-      echo "Missing KUBE_TOKEN."
+      echo "ERROR: Missing KUBE_TOKEN. Make sure to configure the Kubernetes Cluster in Operations->Kubernetes"
       exit 1
     fi
     if [[ -z "$KUBE_NAMESPACE" ]]; then
-      echo "Missing KUBE_NAMESPACE."
+      echo "ERROR: Missing KUBE_NAMESPACE. Make sure to configure the Kubernetes Cluster in Operations->Kubernetes"
       exit 1
     fi
     if [[ -z "$CI_ENVIRONMENT_SLUG" ]]; then
-      echo "Missing CI_ENVIRONMENT_SLUG."
+      echo "ERROR: Missing CI_ENVIRONMENT_SLUG. Make sure to configure the Kubernetes Cluster in Operations->Kubernetes"
       exit 1
     fi
     if [[ -z "$CI_ENVIRONMENT_URL" ]]; then
-      echo "Missing CI_ENVIRONMENT_URL."
+      echo "ERROR: Missing CI_ENVIRONMENT_URL. Make sure to configure the Kubernetes Cluster in Operations->Kubernetes"
+      exit 1
+    fi
+    if [[ -z "$CI_DEPLOY_USER" ]]; then
+      echo "ERROR: Missing CI_DEPLOY_USER. Create a deploy token at Settings->Repository->Deploy Tokens and make one named gitlab-deploy-token with read_registry access."
+      exit 1
+    fi
+    if [[ -z "$CI_DEPLOY_PASSWORD" ]]; then
+      echo "ERROR: Missing CI_DEPLOY_PASSWORD. Create a deploy token at Settings->Repository->Deploy Tokens and make one named gitlab-deploy-token with read_registry access."
       exit 1
     fi
 }
@@ -77,14 +85,69 @@ ping_kube() {
   fi
 }
 
-get_buildargs() {
+buildargs_from() {
+  if [[ -n "$BUILDARGS_FROM" ]]; then
+    echo "BUILDARGS_FROM is set to $BUILDARGS_FROM, starting clone secret operation."
+    echo "Turning on the KDH_INSERT_ARGS flag"
+    export KDH_INSERT_ARGS=true
+    if env | grep -i -e '^SECRET_' > /dev/null; then
+      IFS=$'\n'
+      SECRETS=$(env | grep -i -e '^SECRET_')
+      for i in $SECRETS; do
+        fullkey=$(echo $i | cut -d'=' -f1)
+        stripped=$(echo $i | cut -d'_' -f2-)
+        key=$(echo $stripped | cut -d'=' -f1)
+        value=$(echo -n "${!fullkey}")
+        echo "Exporting $stripped as BUILDARG_$key"
+        export BUILDARG_$stripped
+      done
+    fi
+    if env | grep -i -e "^${BUILDARGS_FROM}_" > /dev/null; then
+      IFS=$'\n'
+      STAGE_SECRETS=$(env | grep -i -e "^${BUILDARGS_FROM}_")
+      for i in $STAGE_SECRETS; do
+        fullkey=$(echo $i | cut -d'=' -f1)
+        stripped=$(echo $i | cut -d'_' -f2-)
+        key=$(echo $stripped | cut -d'=' -f1)
+        value=$(echo -n "${!fullkey}")
+        echo "Exporting $stripped as BUILDARG_$key"
+        export BUILDARG_$stripped
+      done
+    fi
+  fi
+}
+
+insert_args() {
+  if [[ -n "$KDH_INSERT_ARGS" ]]; then
+    echo "KDH_INSERT_ARGS is turned on, so we're going to re-write your Dockerfile and insert ARG commands for every BUILDARG"
+    IFS=$'\n'
+    ALL_VARIABLES=$(env | grep -i -e '^BUILDARG_')
+    for i in $ALL_VARIABLES; do
+      stripped=$(echo $i | cut -d'_' -f2-)
+      key=$(echo $stripped | cut -d'=' -f1)
+      echo "Inserting ARG $key into Dockerfile below the FROM"
+      sed -i -e "/^FROM/a ARG $key" $DOCKERFILE
+    done
+  echo "Dockerfile manipulation complete. Now it looks like:"
+  echo
+  cat $DOCKERFILE
+  echo 
+  fi
+}
+
+set_buildargs() {
   IFS=$'\n'
-  ALL_VARIABLES=$(env | grep -i -e '^BUILDARG_')
-  for i in $ALL_VARIABLES; do
-    stripped=$(echo $i | cut -d'_' -f2-)
-    buildargs+="--build-arg $stripped "
-  done
-  echo $buildargs
+  if env | grep -i -e '^BUILDARG_' > /dev/null; then
+    ALL_VARIABLES=$(env | grep -i -e '^BUILDARG_')
+    for i in $ALL_VARIABLES; do
+      fullkey=$(echo $i | cut -d'=' -f1)
+      stripped=$(echo $i | cut -d'_' -f2-)
+      key=$(echo $stripped | cut -d'=' -f1)
+      value=$(echo -n "${!fullkey}")
+      buildargs="${buildargs}--build-arg $key='$value' "
+    done
+    export buildargs=$buildargs
+  fi
 }
 
 setup_docker() {
@@ -95,7 +158,7 @@ setup_docker() {
   fi
 }
 
-get_secrets() {
+get_secrets_for_creation() {
   if env | grep -i -e '^SECRET_' > /dev/null; then
     IFS=$'\n'
     SECRETS=$(env | grep -i -e '^SECRET_')
@@ -109,6 +172,7 @@ get_secrets() {
   fi
 
   if env | grep -i -e "^$CI_JOB_STAGE"_ > /dev/null; then
+    IFS=$'\n'
     STAGE_SECRETS=$(env | grep -i -e "^$CI_JOB_STAGE")
     for i in $STAGE_SECRETS; do
       fullkey=$(echo $i | cut -d'=' -f1)
@@ -116,6 +180,40 @@ get_secrets() {
       key=$(echo $stripped | cut -d'=' -f1)
       value=$(echo -n "${!fullkey}" | base64 -w 0)
       echo "  $key: $value"
+    done
+  fi
+}
+
+get_secrets_for_usage() {
+  if env | grep -i -e '^SECRET_' > /dev/null; then
+    IFS=$'\n'
+    SECRETS=$(env | grep -i -e '^SECRET_')
+    for i in $SECRETS; do
+      fullkey=$(echo $i | cut -d'=' -f1)
+      stripped=$(echo $i | cut -d'_' -f2-)
+      key=$(echo $stripped | cut -d'=' -f1)
+      value=$(echo -n "${!fullkey}" | base64 -w 0)
+      echo "- name: $key" >> /tmp/secrets.yaml
+      echo "  valueFrom:" >> /tmp/secrets.yaml
+      echo "    secretKeyRef:" >> /tmp/secrets.yaml
+      echo "      name: $KUBE_NAMESPACE-secrets-$STAGE" >> /tmp/secrets.yaml
+      echo "      key: $key" >> /tmp/secrets.yaml
+    done
+  fi
+
+  if env | grep -i -e "^$CI_JOB_STAGE"_ > /dev/null; then
+    IFS=$'\n'
+    STAGE_SECRETS=$(env | grep -i -e "^$CI_JOB_STAGE")
+    for i in $STAGE_SECRETS; do
+      fullkey=$(echo $i | cut -d'=' -f1)
+      stripped=$(echo $i | cut -d'_' -f2-)
+      key=$(echo $stripped | cut -d'=' -f1)
+      value=$(echo -n "${!fullkey}" | base64 -w 0)
+      echo "- name: $key" >> /tmp/secrets.yaml
+      echo "  valueFrom:" >> /tmp/secrets.yaml
+      echo "    secretKeyRef:" >> /tmp/secrets.yaml
+      echo "      name: $KUBE_NAMESPACE-secrets-$STAGE" >> /tmp/secrets.yaml
+      echo "      key: $key" >> /tmp/secrets.yaml
     done
   fi
 }
