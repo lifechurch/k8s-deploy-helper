@@ -127,7 +127,7 @@ build_worker:
 
 # Kubernetes Deployment
 
-The key to succes here is being able to use variables in your manifests. By using the right variables in the right places, you can have one single deployment manifest to maintain that can create deployments for review apps, staging, canaries and production. See our [example repository](https://github.com/lifechurch/example-go) for more information on how to properly setup your manifests.
+The key to success here is being able to use variables in your manifests. By using the right variables in the right places, you can have one single deployment manifest to maintain that can create deployments for review apps, staging, canaries and production. See our [example repository](https://github.com/lifechurch/example-go) for more information on how to properly setup your manifests.
 
 ## Directory Structure
 To deploy applications into Kubernetes, you need to place your templated manifest files into a ```kubernetes``` directory at the root of your repository.
