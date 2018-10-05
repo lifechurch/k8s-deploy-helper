@@ -1,17 +1,31 @@
 #!/bin/bash
 
+export DOLLAR='$'
 SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
-	DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
-	SOURCE="$(readlink "$SOURCE")"
-	[[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+  DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
 done
 
 export DEPLOY_ROOT_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 source "$DEPLOY_ROOT_DIR/src/common.bash"
 
-buildargs=$(get_buildargs)
+if [ "x$1" != "x" ]; then
+  export DOCKERFILE=$1
+else
+  export DOCKERFILE=Dockerfile
+fi
+
+# If BUILDARGS_FROM exists, change SECRET/STAGE_ prefixes to BUILDARG_ for later consumption
+buildargs_from
+
+# Set buildargs
+set_buildargs
+
+# Look for KDH_INSERT_ARGS and edit Dockerfile
+insert_args
 
 if [[ -n "$CI_REGISTRY_USER" ]]; then
 	echo "Logging to GitLab Container Registry with CI credentials..."
@@ -26,10 +40,12 @@ if [ "x$1" != "x" ]; then
 	export SHORT=$(echo "$1" | cut -d'-' -f2-)
 	if [ "x$KDH_SKIP_LATEST" == "xtrue" ]; then
 		echo "KDH_SKIP_LATEST is true, not building from latest"
-		docker build -t "$CI_REGISTRY_IMAGE:$SHORT-$CI_REGISTRY_TAG" $buildargs -f $1 .
+		dockerbuild="docker build -t \"$CI_REGISTRY_IMAGE:$SHORT-$CI_REGISTRY_TAG\" $buildargs -f $1 ."
+		eval $dockerbuild
 	else
 		docker pull $CI_REGISTRY_IMAGE:$SHORT-latest || true
-		docker build --cache-from "$CI_REGISTRY_IMAGE:$SHORT-latest" -t "$CI_REGISTRY_IMAGE:$SHORT-$CI_REGISTRY_TAG" $buildargs -f $1 .
+		dockerbuild="docker build --cache-from \"$CI_REGISTRY_IMAGE:$SHORT-latest\" -t \"$CI_REGISTRY_IMAGE:$SHORT-$CI_REGISTRY_TAG\" $buildargs -f $1 ."
+		eval $dockerbuild
 	fi
 	echo "Pushing to GitLab Container Registry..."
 	docker push "$CI_REGISTRY_IMAGE:$SHORT-$CI_REGISTRY_TAG"
@@ -38,10 +54,12 @@ elif [[ -f Dockerfile ]]; then
 	echo "Building Dockerfile-based application..."
 	if [ "x$KDH_SKIP_LATEST" == "xtrue" ]; then
 		echo "KDH_SKIP_LATEST is true, not building from latest"
-		docker build -t "$CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG" $buildargs .
+		dockerbuild="docker build -t \"$CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG\" $buildargs ."
+		eval $dockerbuild
 	else
 		docker pull $CI_REGISTRY_IMAGE:latest || true
-		docker build --cache-from "$CI_REGISTRY_IMAGE:latest" -t "$CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG" $buildargs .
+		dockerbuild="docker build --cache-from \"$CI_REGISTRY_IMAGE:latest\" -t \"$CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG\" $buildargs ."
+		eval $dockerbuild
 	fi
 	echo "Pushing to GitLab Container Registry..."
 	docker push "$CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG"

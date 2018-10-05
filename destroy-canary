@@ -14,4 +14,4 @@ source "$DEPLOY_ROOT_DIR/src/common.bash"
 create_kubeconfig
 
 echo "Removing all deployment objects for the canary"
-kubectl delete deploy,pod,rs,svc,ing,ds -l "app=$CI_ENVIRONMENT_SLUG" -l "track=canary" -n "$KUBE_NAMESPACE"
+kubectl delete deploy,pod,rs,svc,ing,ds -l "track=canary" -n "$KUBE_NAMESPACE"
