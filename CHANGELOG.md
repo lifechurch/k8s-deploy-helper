@@ -1,7 +1,7 @@
 # Version 3.0.0
 
 ## Backwards Incompatible Changes
-* kubectl - Due to a bug in kubectl, you'll need to delete the gitlab-registry secret in your namespace before you deploy. Make sure to do it right before you do a deploy to make it non-impactful.
+* kubectl - Due to a bug in kubectl, you'll need to delete the gitlab-registry secret in your namespace before you deploy. Make sure to do it right before you do a deploy to make it non-impactful. To do this, run ```kubectl delete secret gitlab-registry -n=yournamespace```.
 
 * Deploy Token Usage - Previous versions used an actual GitLab username because GitLab didn't have persistent deploy tokens until recently. Now that this feature is in GitLab, we're going to stop using the shared credentials as this is much more secure. Create a deploy token at Settings->Repository->Deploy Tokens and make one named gitlab-deploy-token with read_registry access. As long as it's named gitlab-deploy-token, that's all you should have to do.
 
