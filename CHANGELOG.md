@@ -1,3 +1,9 @@
+# Version 3.0.1
+
+## Changes
+
+* Kubeval does not currently evaluate ```cloud.google.com``` schemas. This causes non K8s native manifests to fail deployment. Added some ignore logic to check manifests for ```apiVersion: cloud.google.com``` and not run kubeval on those files.
+
 # Version 3.0.0
 
 ## Backwards Incompatible Changes
