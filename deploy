@@ -69,8 +69,8 @@ mkdir -p /tmp/kubernetes
 if [ ! -d "$CI_PROJECT_DIR/kubernetes" ]; then
   echo "No Kubernetes manifests found, using defaults"
   mkdir -p $CI_PROJECT_DIR/kubernetes
-  cp /opt/kubernetes-deploy/deployment-web.yaml $CI_PROJECT_DIR/kubernetes/
-  cp /opt/kubernetes-deploy/service-web.yaml $CI_PROJECT_DIR/kubernetes/
+  cp /opt/kubernetes-deploy/manifests/deployment-web.yaml $CI_PROJECT_DIR/kubernetes/deployment.yaml
+  cp /opt/kubernetes-deploy/manifests/service-web.yaml $CI_PROJECT_DIR/kubernetes/service.yaml
 fi
 
 echo "Rendering your manifest templates."
