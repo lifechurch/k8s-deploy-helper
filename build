@@ -71,6 +71,11 @@ else
     docker run -i -e BUILDPACK_URL --name="$CI_CONTAINER_NAME" -v "$(pwd):/tmp/app:ro" gliderlabs/herokuish /bin/herokuish buildpack build
     docker commit "$CI_CONTAINER_NAME" "$CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG"
 	docker rm "$CI_CONTAINER_NAME"
+	echo "Configuring $CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG docker image..."
+    docker create --expose 5000 --env PORT=5000 --name="$CI_CONTAINER_NAME" "$CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG" /bin/herokuish procfile start web
+    docker commit "$CI_CONTAINER_NAME" "$CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG"
+    docker rm "$CI_CONTAINER_NAME" >/dev/null
+
     echo "Pushing to GitLab Container Registry"
     docker push "$CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG"
 fi

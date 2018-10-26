@@ -42,7 +42,7 @@ kubectl create secret -n $KUBE_NAMESPACE \
 echo "Registry secret created"
 
 echo
-
+export SECRET_KDH_DUMMY="useless"
 echo "Creating secrets from GitLab variables"
 secrets=$(get_secrets_for_creation)
 
@@ -65,6 +65,13 @@ get_secrets_for_usage
 
 rollout=()
 mkdir -p /tmp/kubernetes
+
+if [ ! -d "$CI_PROJECT_DIR/kubernetes" ]; then
+  echo "No Kubernetes manifests found, using defaults"
+  mkdir -p $CI_PROJECT_DIR/kubernetes
+  cp /opt/kubernetes-deploy/deployment-web.yaml $CI_PROJECT_DIR/kubernetes/
+  cp /opt/kubernetes-deploy/service-web.yaml $CI_PROJECT_DIR/kubernetes/
+fi
 
 echo "Rendering your manifest templates."
 if [ -d "$CI_PROJECT_DIR/kubernetes" ]; then
@@ -180,7 +187,6 @@ if [ "$DATADOG_API_KEY" ]; then
   fi
   curl -X POST -H "Content-type: application/json" -d "{\"title\": \"Kubernetes $CI_JOB_STAGE Deployment\", \"text\": \"$DATADOG_TEXT\", \"priority\": \"normal\", \"tags\": [$DATADOG_TAGS], \"alert_type\": \"info\", \"source_type_name\": \"my_apps\"}" "$URL" > /dev/null || true
 fi
-
 
 echo "Application is accessible at: ${CI_ENVIRONMENT_URL}"
 echo ""
