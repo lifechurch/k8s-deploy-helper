@@ -108,7 +108,7 @@ if [ -d "$CI_PROJECT_DIR/kubernetes" ]; then
 
   echo "Evaluating rendered manifests."
   # Dump the templated manifests to the log for easier debugging and run kubeval against each
-  for filename in kubernetes/*.yaml; do
+  for filename in /tmp/kubernetes/*.yaml; do
     echo "Checking for non-K8s native manifests"
     if grep -q 'apiVersion: cloud.google.com' $filename; then
         echo "Found non-native K8s manifest - skipping - $filename"
@@ -117,7 +117,7 @@ if [ -d "$CI_PROJECT_DIR/kubernetes" ]; then
         echo
         cat "$filename"
         echo
-        kubeval $filename 
+        kubeval $filename
     fi
   done
   echo "Evaluation finished."
