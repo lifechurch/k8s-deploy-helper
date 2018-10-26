@@ -2,23 +2,24 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: web-$CI_ENVIRONMENT_SLUG
+  name: {{PREFIX}}-$CI_ENVIRONMENT_SLUG
   namespace: $KUBE_NAMESPACE
   labels:
     app: $CI_ENVIRONMENT_SLUG
     space: $KUBE_NAMESPACE
     track: stable
 spec:
+  replicas: ${{PREFIX}}_REPLICAS
   selector:
     matchLabels:
-      app: $CI_ENVIRONMENT_SLUG
-      name: web-$CI_ENVIRONMENT_SLUG
+      app: {{PREFIX}}-$CI_ENVIRONMENT_SLUG
+      name: {{PREFIX}}-$CI_ENVIRONMENT_SLUG
       track: stable
   template:
     metadata:
       labels:
-        name: web-$CI_ENVIRONMENT_SLUG
-        app: $CI_ENVIRONMENT_SLUG
+        name: {{PREFIX}}-$CI_ENVIRONMENT_SLUG
+        app: {{PREFIX}}-$CI_ENVIRONMENT_SLUG
         track: stable
         space: $KUBE_NAMESPACE
       annotations:
@@ -26,37 +27,23 @@ spec:
     spec:
       terminationGracePeriodSeconds: 60
       containers:
-      - name: web-$CI_ENVIRONMENT_SLUG
+      - name: {{PREFIX}}-$CI_ENVIRONMENT_SLUG
         image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+        command: ["/bin/herokuish"]
+        args: ["procfile", "start", "{{PREFIX}}"]
         imagePullPolicy: IfNotPresent
         ports:
           - containerPort: $PORT
-        lifecycle:
-          preStop:
-            exec:
-              command: ["bash", "-c", "sleep 20"]
         resources:
           limits:
-            cpu: "$LIMIT_CPU"
-            memory: "$LIMIT_MEMORY"
+            cpu: "${{PREFIX}}_LIMIT_CPU"
+            memory: "${{PREFIX}}_LIMIT_MEMORY"
         livenessProbe:
           exec:
             command:
               - /bin/bash
               - -c
-              - $LIVENESS_PROBE
-        readinessProbe:
-          httpGet:
-            path: $PROBE_URL
-            port: $PORT
-            scheme: HTTP
-            httpHeaders:
-              - name: Host
-                value: 127.0.0.1
-          initialDelaySeconds: 5
-          timeoutSeconds: 2
-          periodSeconds: 3
-          failureThreshold: 10
+              - ${{PREFIX}}_LIVENESS_PROBE
         env:
           {{SECRETS}}
       imagePullSecrets:

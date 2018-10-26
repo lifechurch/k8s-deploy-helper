@@ -66,11 +66,22 @@ get_secrets_for_usage
 rollout=()
 mkdir -p /tmp/kubernetes
 
+echo "Setting defaults"
+set_defaults
+
 if [ ! -d "$CI_PROJECT_DIR/kubernetes" ]; then
   echo "No Kubernetes manifests found, using default manifest for buildpacks"
   mkdir -p $CI_PROJECT_DIR/kubernetes
-  cp -r /opt/kubernetes-deploy/manifests/web/*.yaml $CI_PROJECT_DIR/kubernetes/
+  cp -r /opt/kubernetes-deploy/manifests/web/ $CI_PROJECT_DIR/kubernetes/
+  cat Procfile | grep -v "^web:" | grep ":" | cut -d':' -f1 | while read -r line ; do
+    cp /opt/kubernetes-deploy/manifests/other/deployment.yaml $CI_PROJECT_DIR/kubernetes/deployment-$line.yaml
+    sed -i -e "s/{{PREFIX}}/$line/g" $CI_PROJECT_DIR/kubernetes/deployment-$line.yaml
+    set_prefix_defaults $line
+  done
 fi
+
+echo "Setting defaults"
+set_defaults
 
 echo "Rendering your manifest templates."
 if [ -d "$CI_PROJECT_DIR/kubernetes" ]; then

@@ -23,4 +23,4 @@ spec:
       - path: /
         backend:
           serviceName: web-$CI_ENVIRONMENT_SLUG
-          servicePort: 5000
+          servicePort: $PORT

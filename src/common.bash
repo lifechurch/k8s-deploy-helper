@@ -135,6 +135,68 @@ insert_args() {
   fi
 }
 
+set_defaults() {
+  if [[ ! -v $SCALE_MIN ]]; then
+    export SCALE_MIN=2
+  fi
+
+  if [[ ! -v $SCALE_MAX ]]; then
+    export SCALE_MAX=4
+  fi
+
+  if [[ ! -v $SCALE_CPU ]]; then
+    export SCALE_CPU=60
+  fi
+
+  if [[ ! -v $PDB_MIN ]]; then
+    export PDB_MIN="50%"
+  fi
+
+  if [[ ! -v $PORT ]]; then
+    export PORT=5000
+  fi
+
+  if [[ ! -v $PROBE_URL ]]; then
+    export PROBE_URL="/"
+  fi
+
+  if [[ ! -v $LIMIT_CPU ]]; then
+    export LIMIT_CPU="1"
+  fi
+
+  if [[ ! -v $LIMIT_MEMORY ]]; then
+    export LIMIT_MEMORY="512Mi"
+  fi
+
+  if [[ ! -v $LIVENESS_PROBE ]]; then
+    export LIVENESS_PROBE="/bin/true"
+  fi
+
+}
+
+set_prefix_defaults() {
+  memory=${1}_LIMIT_MEMORY
+  cpu=${1}_LIMIT_CPU
+  liveness=${1}_LIVENESS_PROBE
+  replicas=${1}_REPLICAS
+
+  if [[ ! -v ${memory} ]]; then
+    export {memory}="512Mi"
+  fi
+
+  if [[ ! -v ${cpu} ]]; then
+    export {cpu}="1"
+  fi
+
+  if [[ ! -v ${liveness} ]]; then
+    export {liveness}="/bin/true"
+  fi
+
+  if [[ ! -v ${replicas} ]]; then
+    export {replicas}="1"
+  fi
+}
+
 set_buildargs() {
   IFS=$'\n'
   if env | grep -i -e '^BUILDARG_' > /dev/null; then

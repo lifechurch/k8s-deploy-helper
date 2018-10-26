@@ -9,7 +9,7 @@ metadata:
 spec:
   ports:
   - port: 80
-    targetPort: 5000
+    targetPort: $PORT
     protocol: TCP
     name: http
   selector:
