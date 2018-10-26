@@ -67,7 +67,7 @@ rollout=()
 mkdir -p /tmp/kubernetes
 
 if [ ! -d "$CI_PROJECT_DIR/kubernetes" ]; then
-  echo "No Kubernetes manifests found, using defaults"
+  echo "No Kubernetes manifests found, using default manifest for buildpacks"
   mkdir -p $CI_PROJECT_DIR/kubernetes
   cp -r /opt/kubernetes-deploy/manifests/web/*.yaml $CI_PROJECT_DIR/kubernetes/
 fi

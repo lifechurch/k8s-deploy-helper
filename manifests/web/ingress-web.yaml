@@ -15,7 +15,7 @@ spec:
   tls:
   - hosts:
     - $CI_ENVIRONMENT_HOSTNAME
-    secretName: $KUBE_NAMESPACE-tls
+    secretName: $CI_ENVIRONMENT_SLUG-tls
   rules:
   - host: $CI_ENVIRONMENT_HOSTNAME
     http:

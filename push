@@ -26,14 +26,10 @@ if [ "x$1" != "x" ]; then
         docker tag $CI_REGISTRY_IMAGE:$SHORT-$CI_REGISTRY_TAG $CI_REGISTRY_IMAGE:$SHORT-latest
 	echo "Pushing to GitLab Container Registry..."
         docker push $CI_REGISTRY_IMAGE:$SHORT-latest
-
-elif [[ -f Dockerfile ]]; then
+else
 	echo "Building Dockerfile-based application..."
 	docker pull $CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG
         docker tag $CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG $CI_REGISTRY_IMAGE:latest
 	echo "Pushing to GitLab Container Registry..."
 	docker push "$CI_REGISTRY_IMAGE:latest"
-else
-	echo "Dockerfile not found at root of repo. Exiting."
-	exit 1
 fi
