@@ -1,4 +1,5 @@
 #!/bin/bash
+set -x
 
 export DOLLAR='$'
 SOURCE="${BASH_SOURCE[0]}"
@@ -68,7 +69,7 @@ else
     echo "Starting herokuish"
     docker run -i -e BUILDPACK_URL --name="$CI_CONTAINER_NAME" -v "$(pwd):/tmp/app:ro" gliderlabs/herokuish /bin/herokuish buildpack build
     docker commit "$CI_CONTAINER_NAME" "$CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG"
-	docker rm "$CI_CONTAINER_NAME" >/dev/null
+	docker rm "$CI_CONTAINER_NAME"
     echo "Pushing to GitLab Container Registry"
     docker push "$CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG"
 fi
