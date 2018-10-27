@@ -73,7 +73,7 @@ set_defaults
 if [ ! -d "$CI_PROJECT_DIR/kubernetes" ]; then
   echo "No Kubernetes manifests found, using default manifest for buildpacks"
   mkdir -p $CI_PROJECT_DIR/kubernetes
-  cp -r /opt/kubernetes-deploy/manifests/web/ $CI_PROJECT_DIR/kubernetes/
+  cp -r /opt/kubernetes-deploy/manifests/web/* $CI_PROJECT_DIR/kubernetes/
   if cat Procfile | grep -v "^web:" | grep -v "^#" | grep ":"; then
     cat Procfile | grep -v "^web:" | grep -v "^#" | grep ":" | cut -d':' -f1 | while read -r line ; do
       cp /opt/kubernetes-deploy/manifests/other/deployment.yaml $CI_PROJECT_DIR/kubernetes/deployment-$line.yaml
