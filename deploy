@@ -1,5 +1,4 @@
 #!/bin/bash
-set -x
 
 export DOLLAR='$'
 SOURCE="${BASH_SOURCE[0]}"
@@ -77,7 +76,9 @@ if [ ! -d "$CI_PROJECT_DIR/kubernetes" ]; then
   if cat Procfile | grep -v "^web:" | grep -v "^#" | grep ":"; then
     cat Procfile | grep -v "^web:" | grep -v "^#" | grep ":" | cut -d':' -f1 | while read -r line ; do
       cp /opt/kubernetes-deploy/manifests/other/deployment.yaml $CI_PROJECT_DIR/kubernetes/deployment-$line.yaml
+      cp /opt/kubernetes-deploy/manifests/other/autoscale.yaml $CI_PROJECT_DIR/kubernetes/autoscale-$line.yaml
       sed -i -e "s/{{PREFIX}}/$line/g" $CI_PROJECT_DIR/kubernetes/deployment-$line.yaml
+      sed -i -e "s/{{PREFIX}}/$line/g" $CI_PROJECT_DIR/kubernetes/autoscale-$line.yaml
       set_prefix_defaults $line
     done
   fi

@@ -128,14 +128,20 @@ insert_args() {
       echo "Inserting ARG $key into Dockerfile below the FROM"
       sed -i -e "/^FROM/a ARG $key" $DOCKERFILE
     done
-  echo "Dockerfile manipulation complete. Now it looks like:"
-  echo
-  cat $DOCKERFILE
-  echo 
+    echo "Dockerfile manipulation complete. Now it looks like:"
+    echo
+    cat $DOCKERFILE
+    echo 
   fi
 }
 
 set_defaults() {
+
+  if [[ -v $SCALE_REPLICAS ]]; then
+    export SCALE_MIN=$SCALE_REPLICAS
+    export SCALE_MAX=$SCALE_REPLICAS
+  fi
+
   if [[ ! -v $SCALE_MIN ]]; then
     export SCALE_MIN=2
   fi
@@ -171,7 +177,6 @@ set_defaults() {
   if [[ ! -v $LIVENESS_PROBE ]]; then
     export LIVENESS_PROBE="/bin/true"
   fi
-
 }
 
 set_prefix_defaults() {
@@ -179,21 +184,37 @@ set_prefix_defaults() {
   cpu=${1}_LIMIT_CPU
   liveness=${1}_LIVENESS_PROBE
   replicas=${1}_REPLICAS
+  min_replicas=${1}_MIN_REPLICAS
+  max_replicas=${1}_MAX_REPLICAS
+  scale_cpu=${1}_SCALE_CPU
+
+  if [[ -v ${replicas} ]]; then
+    export ${min_replicas}=${!replicas}
+    export ${max_replicas}=${!replicas}
+  fi
+
+  if [[ ! -v ${min_replicas} ]]; then
+    export ${min_replicas}="1"
+  fi
+
+  if [[ ! -v ${max_replicas} ]]; then
+    export ${max_replicas}="1"
+  fi
+
+  if [[ ! -v ${scale_cpu} ]]; then
+    export ${scale_cpu}="60%"
+  fi
 
   if [[ ! -v ${memory} ]]; then
-    export {memory}="512Mi"
+    export ${memory}="512Mi"
   fi
 
   if [[ ! -v ${cpu} ]]; then
-    export {cpu}="1"
+    export ${cpu}="1"
   fi
 
   if [[ ! -v ${liveness} ]]; then
-    export {liveness}="/bin/true"
-  fi
-
-  if [[ ! -v ${replicas} ]]; then
-    export {replicas}="1"
+    export ${liveness}="/bin/true"
   fi
 }
 
