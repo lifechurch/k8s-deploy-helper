@@ -6,6 +6,7 @@ metadata:
   namespace: $KUBE_NAMESPACE
   labels:
     app: {{PREFIX}}-$CI_ENVIRONMENT_SLUG
+    environment: $CI_ENVIRONMENT_SLUG
     space: $KUBE_NAMESPACE
     track: stable
 spec:
@@ -13,6 +14,7 @@ spec:
     matchLabels:
       app: {{PREFIX}}-$CI_ENVIRONMENT_SLUG
       name: {{PREFIX}}-$CI_ENVIRONMENT_SLUG
+      environment: $CI_ENVIRONMENT_SLUG
       track: stable
   template:
     metadata:
@@ -20,6 +22,7 @@ spec:
         name: {{PREFIX}}-$CI_ENVIRONMENT_SLUG
         app: {{PREFIX}}-$CI_ENVIRONMENT_SLUG
         track: stable
+        environment: $CI_ENVIRONMENT_SLUG
         space: $KUBE_NAMESPACE
       annotations:
         build_id: "$CI_JOB_ID"

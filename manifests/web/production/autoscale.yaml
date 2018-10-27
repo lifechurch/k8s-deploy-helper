@@ -4,6 +4,7 @@ kind: HorizontalPodAutoscaler
 metadata:
   labels:
     app: $CI_ENVIRONMENT_SLUG
+    environment: $CI_ENVIRONMENT_SLUG
   name: web-$CI_ENVIRONMENT_SLUG
   namespace: $KUBE_NAMESPACE
 spec:

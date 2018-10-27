@@ -6,18 +6,21 @@ metadata:
   namespace: $KUBE_NAMESPACE
   labels:
     app: $CI_ENVIRONMENT_SLUG
+    environment: $CI_ENVIRONMENT_SLUG
     space: $KUBE_NAMESPACE
     track: stable
 spec:
   selector:
     matchLabels:
       app: $CI_ENVIRONMENT_SLUG
+      environment: $CI_ENVIRONMENT_SLUG
       name: web-$CI_ENVIRONMENT_SLUG
       track: stable
   template:
     metadata:
       labels:
         name: web-$CI_ENVIRONMENT_SLUG
+        environment: $CI_ENVIRONMENT_SLUG
         app: $CI_ENVIRONMENT_SLUG
         track: stable
         space: $KUBE_NAMESPACE
