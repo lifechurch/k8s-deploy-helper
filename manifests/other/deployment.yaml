@@ -5,7 +5,7 @@ metadata:
   name: {{PREFIX}}-$CI_ENVIRONMENT_SLUG
   namespace: $KUBE_NAMESPACE
   labels:
-    app: $CI_ENVIRONMENT_SLUG
+    app: {{PREFIX}}-$CI_ENVIRONMENT_SLUG
     space: $KUBE_NAMESPACE
     track: stable
 spec:
