@@ -9,7 +9,6 @@ metadata:
     space: $KUBE_NAMESPACE
     track: stable
 spec:
-  replicas: ${{PREFIX}}_REPLICAS
   selector:
     matchLabels:
       app: {{PREFIX}}-$CI_ENVIRONMENT_SLUG
