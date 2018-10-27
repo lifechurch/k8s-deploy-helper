@@ -179,6 +179,45 @@ set_defaults() {
   fi
 }
 
+set_prefix_defaults() {
+  memory=${1}_LIMIT_MEMORY
+  cpu=${1}_LIMIT_CPU
+  liveness=${1}_LIVENESS_PROBE
+  replicas=${1}_REPLICAS
+  min_replicas=${1}_MIN_REPLICAS
+  max_replicas=${1}_MAX_REPLICAS
+  scale_cpu=${1}_SCALE_CPU
+
+  if [[ -v ${replicas} ]]; then
+    export ${min_replicas}=${!replicas}
+    export ${max_replicas}=${!replicas}
+  fi
+
+  if [[ ! -v ${min_replicas} ]]; then
+    export ${min_replicas}="1"
+  fi
+
+  if [[ ! -v ${max_replicas} ]]; then
+    export ${max_replicas}="1"
+  fi
+
+  if [[ ! -v ${scale_cpu} ]]; then
+    export ${scale_cpu}="60%"
+  fi
+
+  if [[ ! -v ${memory} ]]; then
+    export ${memory}="512Mi"
+  fi
+
+  if [[ ! -v ${cpu} ]]; then
+    export ${cpu}="1"
+  fi
+
+  if [[ ! -v ${liveness} ]]; then
+    export ${liveness}="/bin/true"
+  fi
+}
+
 set_buildargs() {
   IFS=$'\n'
   if env | grep -i -e '^BUILDARG_' > /dev/null; then
