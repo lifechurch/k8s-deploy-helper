@@ -79,7 +79,7 @@ if [ ! -d "$CI_PROJECT_DIR/kubernetes" ]; then
       cp /opt/kubernetes-deploy/manifests/other/deployment.yaml $CI_PROJECT_DIR/kubernetes/deployment-$line.yaml
       cp /opt/kubernetes-deploy/manifests/other/autoscale.yaml $CI_PROJECT_DIR/kubernetes/production/autoscale-$line.yaml
       sed -i -e "s/{{PREFIX}}/$line/g" $CI_PROJECT_DIR/kubernetes/deployment-$line.yaml
-      sed -i -e "s/{{PREFIX}}/$line/g" $CI_PROJECT_DIR/kubernetes/autoscale-$line.yaml
+      sed -i -e "s/{{PREFIX}}/$line/g" $CI_PROJECT_DIR/kubernetes/production/autoscale-$line.yaml
       set_prefix_defaults $line
     done
   fi
