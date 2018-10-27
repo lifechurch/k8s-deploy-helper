@@ -15,9 +15,11 @@ if [[ "$CI_JOB_STAGE" == "canary" ]]; then
   export STAGE="production"
   export CI_JOB_STAGE="production"
   export ISCANARY="true"
+  export REAL_JOB_STAGE="canary"
   echo "We are in a canary deploy, behaving like production but looking for track:"
 else
   export ISCANARY="false"
+  export REAL_JOB_STAGE=$CI_JOB_STAGE
 fi
 
 create_kubeconfig() {

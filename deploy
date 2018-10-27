@@ -189,7 +189,7 @@ fi
 
 if [ "$SLACK_WEBHOOK_URL" ]; then
   echo "Sending deploy event to Slack channel..."
-  curl --silent -X POST -H 'Content-type: application/json' --data "{\"text\": \"Kubernetes Deployment\", \"attachments\": [ { \"color\": \"good\", \"text\": \"Successfully deployed to $CI_JOB_STAGE\" }]}" $SLACK_WEBHOOK_URL > /dev/null || true
+  curl --silent -X POST -H 'Content-type: application/json' --data "{\"text\": \"Kubernetes Deployment\", \"attachments\": [ { \"color\": \"good\", \"text\": \"Successfully deployed to $REAL_JOB_STAGE\" }]}" $SLACK_WEBHOOK_URL > /dev/null || true
 fi
 
 if [ "$DATADOG_API_KEY" ]; then
@@ -199,9 +199,9 @@ if [ "$DATADOG_API_KEY" ]; then
     URL="$URL&app_key=$DATADOG_APP_KEY"
   fi
   if [[ -z "$DATADOG_TEXT" ]]; then
-      DATADOG_TEXT="$CI_JOB_STAGE $CI_REGISTRY_TAG"
+      DATADOG_TEXT="$REAL_JOB_STAGE $CI_REGISTRY_TAG"
   fi
-  curl -X POST -H "Content-type: application/json" -d "{\"title\": \"Kubernetes $CI_JOB_STAGE Deployment\", \"text\": \"$DATADOG_TEXT\", \"priority\": \"normal\", \"tags\": [$DATADOG_TAGS], \"alert_type\": \"info\", \"source_type_name\": \"my_apps\"}" "$URL" > /dev/null || true
+  curl -X POST -H "Content-type: application/json" -d "{\"title\": \"Kubernetes $REAL_JOB_STAGE Deployment\", \"text\": \"$DATADOG_TEXT\", \"priority\": \"normal\", \"tags\": [$DATADOG_TAGS], \"alert_type\": \"info\", \"source_type_name\": \"my_apps\"}" "$URL" > /dev/null || true
 fi
 
 echo "Application is accessible at: ${CI_ENVIRONMENT_URL}"
