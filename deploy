@@ -74,7 +74,7 @@ if [ ! -d "$CI_PROJECT_DIR/kubernetes" ]; then
   echo "No Kubernetes manifests found, using default manifest for buildpacks"
   mkdir -p $CI_PROJECT_DIR/kubernetes
   cp -r /opt/kubernetes-deploy/manifests/web/* $CI_PROJECT_DIR/kubernetes/
-  IFS='\n'
+  IFS=$'\n'
   if cat Procfile | grep -v "^web:" | grep -v "^#" | grep ":" > /dev/null; then
     ALL_STAGES=$(cat Procfile | grep -v "^web:" | grep -v "^#" | grep ":" | cut -d':' -f1)
     for line in $ALL_STAGES; do
