@@ -204,7 +204,7 @@ set_prefix_defaults() {
   fi
 
   if [[ ! -v ${scale_cpu} ]]; then
-    export ${scale_cpu}="60%"
+    export ${scale_cpu}="60"
   fi
 
   if [[ ! -v ${memory} ]]; then
