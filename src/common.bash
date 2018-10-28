@@ -186,8 +186,8 @@ set_prefix_defaults() {
   cpu=${1}_LIMIT_CPU
   liveness=${1}_LIVENESS_PROBE
   replicas=${1}_REPLICAS
-  min_replicas=${1}_MIN_REPLICAS
-  max_replicas=${1}_MAX_REPLICAS
+  min_replicas=${1}_SCALE_MIN
+  max_replicas=${1}_SCALE_MAX
   scale_cpu=${1}_SCALE_CPU
 
   if [[ -v ${replicas} ]]; then
