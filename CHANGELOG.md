@@ -1,8 +1,26 @@
-# Version 3.0.1
+# Version 3.1.0
+
+Docker Image: quay.io/lifechurch/k8s-deploy-helper:3.1.0
+
+**NOTE: Starting with this version, your GitLab runners need to run in priveleged mode to allow for dind stuff to run correctly.** 
+
+## New Features
+
+* BUILD - If no Dockerfile is present in the root directory, we will attempt to build an image using Heroku Buildpacks via herokuish. 
+
+* DEPLOY - If no kubernetes folder is present in the root directory, we will attempt to use our own default manifests. This has Procfile support, allowing you to run workers as well. See documentation for more details.
+
+## Bug Fixes
+
+* 3.0.1 introduced a template evaluation error, fixed.
+
+* Slack and Datadog will now announce canary deploys as canary, rather than production.
+
+# Version 3.0.1 - DO NOT USE
 
 ## Changes
 
-* Kubeval does not currently evaluate ```cloud.google.com``` schemas. This causes non K8s native manifests to fail deployment. Added some ignore logic to check manifests for ```apiVersion: cloud.google.com``` and not run kubeval on those files.
+* Kubeval will not evaluate ```cloud.google.com``` schemas correctly, so we skip these now. 
 
 # Version 3.0.0
 
