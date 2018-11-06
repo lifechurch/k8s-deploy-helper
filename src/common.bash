@@ -222,6 +222,11 @@ set_prefix_defaults() {
 
 set_buildargs() {
   IFS=$'\n'
+  if [[ -f Dockerfile ]]; then
+    STRING="--build-arg"
+  else
+    STRING="-e"
+  fi
   if env | grep -i -e '^BUILDARG_' > /dev/null; then
     ALL_VARIABLES=$(env | grep -i -e '^BUILDARG_')
     for i in $ALL_VARIABLES; do
@@ -229,7 +234,7 @@ set_buildargs() {
       stripped=$(echo $i | cut -d'_' -f2-)
       key=$(echo $stripped | cut -d'=' -f1)
       value=$(echo -n "${!fullkey}")
-      buildargs="${buildargs}--build-arg $key='$value' "
+      buildargs="${buildargs}${STRING} $key='$value' "
     done
     export buildargs=$buildargs
   fi
