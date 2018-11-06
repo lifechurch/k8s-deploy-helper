@@ -70,7 +70,7 @@ else
     build_env
 	cat -A .env
     echo "Starting herokuish"
-    dockerrun="docker run -i -e --name=\"$CI_CONTAINER_NAME\" -v \"$(pwd):/tmp/app:ro\" gliderlabs/herokuish /bin/herokuish buildpack build"
+    dockerrun="docker run -i -e TRACE='true' --name=\"$CI_CONTAINER_NAME\" -v \"$(pwd):/tmp/app:ro\" gliderlabs/herokuish /bin/herokuish buildpack build"
 	eval $dockerrun
     docker commit "$CI_CONTAINER_NAME" "$CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG"
 	docker rm "$CI_CONTAINER_NAME"
