@@ -244,7 +244,7 @@ build_env() {
       stripped=$(echo $i | cut -d'_' -f2-)
       key=$(echo $stripped | cut -d'=' -f1)
       value=$(echo -n "${!fullkey}")
-      echo "$key=$value" >> .env
+      echo "export $key='$value'" >> .env
     done
   fi
 }
