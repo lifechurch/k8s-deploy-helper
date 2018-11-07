@@ -1,13 +1,13 @@
 [![Docker Repository on Quay](https://quay.io/repository/lifechurch/k8s-deploy-helper/status "Docker Repository on Quay")](https://quay.io/repository/lifechurch/k8s-deploy-helper)
 
 # Description
-k8s-deploy-helper is a tool to help build and deploy containerized applications into Kubernetes using GitLab CI along with templated manifest files. Major features include:
+k8s-deploy-helper (KDH) is a tool to help build and deploy containerized applications into Kubernetes using GitLab CI along with templated manifest files. Major features include:
 
 * Automated Kubernetes Secret Management using GitLab's UI. Version 3.0.0 can automatically insert secrets into Kubernetes manifests and Dockerfiles to lessen manual work.
 * Build via Heroku buildpacks or via Dockerfiles starting in 3.1.0.
 * Automated canary deployments. Dynamic creation is included in version 3.0.0.
 * Automated review app deployments.
-* Automated deployment of simple applications without manifest files in 3.1.0.
+* Automated deployment of applications using Heroku Procfile in 3.1.0.
 * Deployment notifications to New Relic, Datadog and Slack.
 * Templated manifest deployments to Kubernetes living in the same repo as the code, giving developers more control.
 * Uses [kubeval](https://github.com/garethr/kubeval) to evaluate manifest yaml before any are deployed.
@@ -65,8 +65,6 @@ GitLab has finally introduced a way to have persistent deploy tokens that can fe
 # Building Docker Images
 
 Our goal was to make sure Docker containers could be built as quickly as possible without the developers having to micromanage each docker build command on a per-project basis.
-
-**Starting in 3.1.0, if no Dockerfile is at the root of the repo, k8s-deploy-helper will use herokuish to build your application via a Heroku Buildpack.**
 
 Here is a quick example from the .gitlab-ci.yml:
 
@@ -127,6 +125,22 @@ build_worker:
     - branches
 ```
 
+## Buildpack Builds
+Starting in 3.1.0, KDH can build applications using [Heroku Buildpacks](https://devcenter.heroku.com/articles/buildpacks) via [herokuish](https://github.com/gliderlabs/herokuish). To do this, we run the latest herokuish docker container to make sure you have access to the latest buildpacks. Because we mount your code into the herokuish docker container, we need to use dind, so you'll need to make sure your GitLab runner has privileged access. All you need to do is not have a Dockerfile in your root, and we'll use the buildpack method. In the gitlab-ci, you'll need to expose docker:stable-dind as a service like so:
+
+```
+build:
+  stage: build
+  services:
+    - docker:stable-dind
+  script:
+    - command build
+  only:
+    - branches
+```
+
+You can use BUILDARG_ syntax from above to pass in build arguments, such as npm tokens, etc...
+
 # Kubernetes Deployment
 
 The key to success here is being able to use variables in your manifests. By using the right variables in the right places, you can have one single deployment manifest to maintain that can create deployments for review apps, staging, canaries and production. See our [example repository](https://github.com/lifechurch/example-go) for more information on how to properly setup your manifests.
@@ -182,60 +196,6 @@ This will evaluate to the following before it's applied:
         return 403;
       }
 ```
-
-## Manifest-less Deploys
-Starting in 3.1.0, we added an option for manifest-less deploys to help us migrate away from Deis Workflow. In order for this to work, we had to make some very opinionated decisions regarding our manifests. These may not work for your organization. If this is the case, we encourage you to fork our project and make your own default manifests. They can be found in the manifests directory.
-
-### Deploy Requirements
-
-* nginx Ingress Controller
-
-* certmanager or kube-lego that can issue let's encrypt certificiates via the ```kubernetes.io/tls-acme: 'true'``` annotation.
-
-### Conventions
-
-* We will obey Procfiles and every line will get its own deployment. Web will get an ingress, service, pod disruption budget, and autoscaling. Every other line will be treated as worker, and will just get autoscaling. 
-
-### Variables & Defaults
-
-#### Web
-
-* LIMIT_CPU: 1 - CPU Resource Limit
-
-* LIMIT_MEMORY: 512Mi - Memory Resource Limit 
-
-* SCALE_REPLICAS (Production Only): Not Set - If SCALE_REPLICAS is set, SCALE_MIN and SCALE_MAX will be set to the value of SCALE_REPLICAS. 
-
-* SCALE_MIN (Production Only): 2 - Minimum amount of running pods set in the HPA
-
-* SCALE_MAX (Production Only): 4 - Maximum amount of running pods set in the HPA
-
-* SCALE_CPU (Production Only): 60 - CPU usage at which autoscaling occurs
-
-* PDB_MIN (Production Only): 50% - minAvailable percentage.
-
-* PORT: 5000 - The port your app listens on
-
-* PROBE_URL: / - The URL that will get hit for readiness probe.
-
-* LIVENESS_PROBE: /bin/true - The command used for the liveness probe.
-
-#### Other (workers)
-
-To set variables for your other runtimes specified in the Procfile, you can create variables with this pattern. For example, let's say you have a worker that's named ```worker``` in your Procfile and you want to assign 2 CPU to each pod, you would set a variable named ```worker_LIMIT_CPU``` to ```2```. 
-
-Variables you can set to control your worker stages are listed below, along with their default values. We'll refer to the name of your stage as ${1}. 
-
-```
-  ${1}_LIMIT_CPU: 1
-  ${1}_LIMIT_MEMORY: 512Mi
-  ${1}_LIVENESS_PROBE: /bin/true
-  ${1}_REPLICAS: Not Set
-  ${1}_SCALE_MIN: 1
-  ${1}_SCALE_MAX: 1
-  ${1}_SCALE_CPU : 60%
-```
-
 
 # Secret Management
 
@@ -340,6 +300,60 @@ DATADOG_APP_KEY=xxx
 DATADOG_TAGS="deploys:api","foo:bar"
 DATADOG_TEXT=\n%%%\n### Success\n%%%
 ```
+
+# Manifest-less Deploys
+Starting in 3.1.0, we added an option for manifest-less deploys to help us migrate away from Deis Workflow. In order for this to work, we had to make some very opinionated decisions regarding our manifests. These may not work for your organization. If this is the case, we encourage you to fork our project and make your own default manifests. They can be found in the manifests directory.
+
+## Manifest-less Requirements
+
+* nginx Ingress Controller
+
+* certmanager or kube-lego that can issue let's encrypt certificiates via the ```kubernetes.io/tls-acme: 'true'``` annotation.
+
+## Conventions
+
+* We will obey Procfiles and every line will get its own deployment. Web will get an ingress, service, pod disruption budget, and autoscaling. Every other line will be treated as worker, and will just get autoscaling. 
+
+## Variables & Defaults
+
+### Web
+
+* LIMIT_CPU: 1 - CPU Resource Limit
+
+* LIMIT_MEMORY: 512Mi - Memory Resource Limit 
+
+* SCALE_REPLICAS (Production Only): Not Set - If SCALE_REPLICAS is set, SCALE_MIN and SCALE_MAX will be set to the value of SCALE_REPLICAS. 
+
+* SCALE_MIN (Production Only): 2 - Minimum amount of running pods set in the HPA
+
+* SCALE_MAX (Production Only): 4 - Maximum amount of running pods set in the HPA
+
+* SCALE_CPU (Production Only): 60 - CPU usage at which autoscaling occurs
+
+* PDB_MIN (Production Only): 50% - minAvailable percentage.
+
+* PORT: 5000 - The port your app listens on
+
+* PROBE_URL: / - The URL that will get hit for readiness probe.
+
+* LIVENESS_PROBE: /bin/true - The command used for the liveness probe.
+
+### Other (workers)
+
+To set variables for your other runtimes specified in the Procfile, you can create variables with this pattern. For example, let's say you have a worker that's named ```worker``` in your Procfile and you want to assign 2 CPU to each pod, you would set a variable named ```worker_LIMIT_CPU``` to ```2```. 
+
+Variables you can set to control your worker stages are listed below, along with their default values. We'll refer to the name of your stage as ${1}. 
+
+```
+  ${1}_LIMIT_CPU: 1
+  ${1}_LIMIT_MEMORY: 512Mi
+  ${1}_LIVENESS_PROBE: /bin/true
+  ${1}_REPLICAS: Not Set
+  ${1}_SCALE_MIN: 1
+  ${1}_SCALE_MAX: 1
+  ${1}_SCALE_CPU : 60%
+```
+
 
 # Contributing
 
