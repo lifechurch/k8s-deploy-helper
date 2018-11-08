@@ -69,7 +69,7 @@ echo "Setting defaults"
 set_defaults
 
 if [ ! -d "$CI_PROJECT_DIR/kubernetes" ]; then
-  echo "No Kubernetes manifests found, using default manifest for buildpacks"
+  echo "No Kubernetes manifests found, using default manifests for buildpacks"
   mkdir -p $CI_PROJECT_DIR/kubernetes
   cp -r /opt/kubernetes-deploy/manifests/web/* $CI_PROJECT_DIR/kubernetes/
   IFS=$'\n'
@@ -85,9 +85,6 @@ if [ ! -d "$CI_PROJECT_DIR/kubernetes" ]; then
     done
   fi
 fi
-
-echo "Setting defaults"
-set_defaults
 
 echo "Rendering your manifest templates."
 if [ -d "$CI_PROJECT_DIR/kubernetes" ]; then
