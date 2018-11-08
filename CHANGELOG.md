@@ -2,7 +2,7 @@
 
 Docker Image: quay.io/lifechurch/k8s-deploy-helper:3.1.0
 
-**NOTE: Starting with this version, your GitLab runners need to run in priveleged mode to allow for dind stuff to run correctly.** 
+**NOTE: Starting with this version, your GitLab runners need to run in privileged mode to allow for Heroku buildpack builds, and container scanning that will come in the next release.**
 
 ## New Features
 
