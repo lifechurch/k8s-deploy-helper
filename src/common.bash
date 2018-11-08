@@ -15,9 +15,11 @@ if [[ "$CI_JOB_STAGE" == "canary" ]]; then
   export STAGE="production"
   export CI_JOB_STAGE="production"
   export ISCANARY="true"
+  export REAL_JOB_STAGE="canary"
   echo "We are in a canary deploy, behaving like production but looking for track:"
 else
   export ISCANARY="false"
+  export REAL_JOB_STAGE=$CI_JOB_STAGE
 fi
 
 create_kubeconfig() {
@@ -128,15 +130,103 @@ insert_args() {
       echo "Inserting ARG $key into Dockerfile below the FROM"
       sed -i -e "/^FROM/a ARG $key" $DOCKERFILE
     done
-  echo "Dockerfile manipulation complete. Now it looks like:"
-  echo
-  cat $DOCKERFILE
-  echo 
+    echo "Dockerfile manipulation complete. Now it looks like:"
+    echo
+    cat $DOCKERFILE
+    echo 
+  fi
+}
+
+set_defaults() {
+
+  if [[ -v $SCALE_REPLICAS ]]; then
+    export SCALE_MIN=$SCALE_REPLICAS
+    export SCALE_MAX=$SCALE_REPLICAS
+  fi
+
+  if [[ ! -v $SCALE_MIN ]]; then
+    export SCALE_MIN=2
+  fi
+
+  if [[ ! -v $SCALE_MAX ]]; then
+    export SCALE_MAX=4
+  fi
+
+  if [[ ! -v $SCALE_CPU ]]; then
+    export SCALE_CPU=60
+  fi
+
+  if [[ ! -v $PDB_MIN ]]; then
+    export PDB_MIN="50%"
+  fi
+
+  if [[ ! -v $PORT ]]; then
+    export PORT=5000
+  fi
+
+  if [[ ! -v $PROBE_URL ]]; then
+    export PROBE_URL="/"
+  fi
+
+  if [[ ! -v $LIMIT_CPU ]]; then
+    export LIMIT_CPU="1"
+  fi
+
+  if [[ ! -v $LIMIT_MEMORY ]]; then
+    export LIMIT_MEMORY="512Mi"
+  fi
+
+  if [[ ! -v $LIVENESS_PROBE ]]; then
+    export LIVENESS_PROBE="/bin/true"
+  fi
+}
+
+set_prefix_defaults() {
+  memory=${1}_LIMIT_MEMORY
+  cpu=${1}_LIMIT_CPU
+  liveness=${1}_LIVENESS_PROBE
+  replicas=${1}_REPLICAS
+  min_replicas=${1}_SCALE_MIN
+  max_replicas=${1}_SCALE_MAX
+  scale_cpu=${1}_SCALE_CPU
+
+  if [[ -v ${replicas} ]]; then
+    export ${min_replicas}=${!replicas}
+    export ${max_replicas}=${!replicas}
+  fi
+
+  if [[ ! -v ${min_replicas} ]]; then
+    export ${min_replicas}="1"
+  fi
+
+  if [[ ! -v ${max_replicas} ]]; then
+    export ${max_replicas}="1"
+  fi
+
+  if [[ ! -v ${scale_cpu} ]]; then
+    export ${scale_cpu}="60"
+  fi
+
+  if [[ ! -v ${memory} ]]; then
+    export ${memory}="512Mi"
+  fi
+
+  if [[ ! -v ${cpu} ]]; then
+    export ${cpu}="1"
+  fi
+
+  if [[ ! -v ${liveness} ]]; then
+    export ${liveness}="/bin/true"
   fi
 }
 
 set_buildargs() {
   IFS=$'\n'
+  if [[ -f Dockerfile ]]; then
+    STRING="--build-arg"
+  else
+    STRING="-e"
+  fi
   if env | grep -i -e '^BUILDARG_' > /dev/null; then
     ALL_VARIABLES=$(env | grep -i -e '^BUILDARG_')
     for i in $ALL_VARIABLES; do
@@ -144,7 +234,7 @@ set_buildargs() {
       stripped=$(echo $i | cut -d'_' -f2-)
       key=$(echo $stripped | cut -d'=' -f1)
       value=$(echo -n "${!fullkey}")
-      buildargs="${buildargs}--build-arg $key='$value' "
+      buildargs="${buildargs}${STRING} $key='$value' "
     done
     export buildargs=$buildargs
   fi

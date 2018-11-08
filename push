@@ -20,20 +20,16 @@ fi
 echo "Tagging application as latest..."
 
 if [ "x$1" != "x" ]; then
-	echo "Building Dockerfile-based application using the Dockerfile at $1"
+	echo "Tagging $CI_REGISTRY_IMAGE:$SHORT-$CI_REGISTRY_TAG as $CI_REGISTRY_IMAGE:$SHORT-latest"
 	export SHORT=$(echo "$1" | cut -d'-' -f2-)
 	docker pull $CI_REGISTRY_IMAGE:$SHORT-$CI_REGISTRY_TAG
         docker tag $CI_REGISTRY_IMAGE:$SHORT-$CI_REGISTRY_TAG $CI_REGISTRY_IMAGE:$SHORT-latest
 	echo "Pushing to GitLab Container Registry..."
         docker push $CI_REGISTRY_IMAGE:$SHORT-latest
-
-elif [[ -f Dockerfile ]]; then
-	echo "Building Dockerfile-based application..."
+else
+	echo "Tagging $CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG as $CI_REGISTRY_IMAGE:latest"
 	docker pull $CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG
         docker tag $CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG $CI_REGISTRY_IMAGE:latest
 	echo "Pushing to GitLab Container Registry..."
 	docker push "$CI_REGISTRY_IMAGE:latest"
-else
-	echo "Dockerfile not found at root of repo. Exiting."
-	exit 1
 fi

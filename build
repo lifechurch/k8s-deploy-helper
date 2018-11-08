@@ -64,6 +64,19 @@ elif [[ -f Dockerfile ]]; then
 	echo "Pushing to GitLab Container Registry..."
 	docker push "$CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG"
 else
-	echo "Dockerfile not found at root of repo. Exiting."
-	exit 1
+    export DOCKER_HOST='tcp://docker:2375'
+	echo "No Dockerfile at root of repo. Using herokuish build packs."
+    echo "Building environment variables file from BUILDARGS"
+    echo "Starting herokuish"
+    dockerrun="docker run -i $buildargs --name=\"$CI_CONTAINER_NAME\" -v \"$(pwd):/tmp/app:ro\" gliderlabs/herokuish /bin/herokuish buildpack build"
+	eval $dockerrun
+    docker commit "$CI_CONTAINER_NAME" "$CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG"
+	docker rm "$CI_CONTAINER_NAME"
+	echo "Configuring $CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG docker image..."
+    docker create --expose 5000 --env PORT=5000 --name="$CI_CONTAINER_NAME" "$CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG" /bin/herokuish procfile start web
+    docker commit "$CI_CONTAINER_NAME" "$CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG"
+    docker rm "$CI_CONTAINER_NAME" >/dev/null
+
+    echo "Pushing to GitLab Container Registry"
+    docker push "$CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG"
 fi

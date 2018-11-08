@@ -1,5 +1,4 @@
 #!/bin/bash
-
 export DOLLAR='$'
 SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
@@ -42,7 +41,7 @@ kubectl create secret -n $KUBE_NAMESPACE \
 echo "Registry secret created"
 
 echo
-
+export SECRET_KDH_DUMMY="useless"
 echo "Creating secrets from GitLab variables"
 secrets=$(get_secrets_for_creation)
 
@@ -65,6 +64,27 @@ get_secrets_for_usage
 
 rollout=()
 mkdir -p /tmp/kubernetes
+
+echo "Setting defaults"
+set_defaults
+
+if [ ! -d "$CI_PROJECT_DIR/kubernetes" ]; then
+  echo "No Kubernetes manifests found, using default manifests for buildpacks"
+  mkdir -p $CI_PROJECT_DIR/kubernetes
+  cp -r /opt/kubernetes-deploy/manifests/web/* $CI_PROJECT_DIR/kubernetes/
+  IFS=$'\n'
+  if cat Procfile | grep -v "^web:" | grep -v "^#" | grep ":" > /dev/null; then
+    ALL_STAGES=$(cat Procfile | grep -v "^web:" | grep -v "^#" | grep ":" | cut -d':' -f1)
+    for line in $ALL_STAGES; do
+      mkdir -p $CI_PROJECT_DIR/kubernetes/production
+      cp /opt/kubernetes-deploy/manifests/other/deployment.yaml $CI_PROJECT_DIR/kubernetes/deployment-$line.yaml
+      cp /opt/kubernetes-deploy/manifests/other/autoscale.yaml $CI_PROJECT_DIR/kubernetes/production/autoscale-$line.yaml
+      sed -i -e "s/{{PREFIX}}/$line/g" $CI_PROJECT_DIR/kubernetes/deployment-$line.yaml
+      sed -i -e "s/{{PREFIX}}/$line/g" $CI_PROJECT_DIR/kubernetes/production/autoscale-$line.yaml
+      set_prefix_defaults $line
+    done
+  fi
+fi
 
 echo "Rendering your manifest templates."
 if [ -d "$CI_PROJECT_DIR/kubernetes" ]; then
@@ -101,7 +121,7 @@ if [ -d "$CI_PROJECT_DIR/kubernetes" ]; then
 
   echo "Evaluating rendered manifests."
   # Dump the templated manifests to the log for easier debugging and run kubeval against each
-  for filename in kubernetes/*.yaml; do
+  for filename in /tmp/kubernetes/*.yaml; do
     echo "Checking for non-K8s native manifests"
     if grep -q 'apiVersion: cloud.google.com' $filename; then
         echo "Found non-native K8s manifest - skipping - $filename"
@@ -110,7 +130,7 @@ if [ -d "$CI_PROJECT_DIR/kubernetes" ]; then
         echo
         cat "$filename"
         echo
-        kubeval $filename 
+        kubeval $filename
     fi
   done
   echo "Evaluation finished."
@@ -166,7 +186,7 @@ fi
 
 if [ "$SLACK_WEBHOOK_URL" ]; then
   echo "Sending deploy event to Slack channel..."
-  curl --silent -X POST -H 'Content-type: application/json' --data "{\"text\": \"Kubernetes Deployment\", \"attachments\": [ { \"color\": \"good\", \"text\": \"Successfully deployed to $CI_JOB_STAGE\" }]}" $SLACK_WEBHOOK_URL > /dev/null || true
+  curl --silent -X POST -H 'Content-type: application/json' --data "{\"text\": \"Kubernetes Deployment\", \"attachments\": [ { \"color\": \"good\", \"text\": \"Successfully deployed to $REAL_JOB_STAGE\" }]}" $SLACK_WEBHOOK_URL > /dev/null || true
 fi
 
 if [ "$DATADOG_API_KEY" ]; then
@@ -176,11 +196,10 @@ if [ "$DATADOG_API_KEY" ]; then
     URL="$URL&app_key=$DATADOG_APP_KEY"
   fi
   if [[ -z "$DATADOG_TEXT" ]]; then
-      DATADOG_TEXT="$CI_JOB_STAGE $CI_REGISTRY_TAG"
+      DATADOG_TEXT="$REAL_JOB_STAGE $CI_REGISTRY_TAG"
   fi
-  curl -X POST -H "Content-type: application/json" -d "{\"title\": \"Kubernetes $CI_JOB_STAGE Deployment\", \"text\": \"$DATADOG_TEXT\", \"priority\": \"normal\", \"tags\": [$DATADOG_TAGS], \"alert_type\": \"info\", \"source_type_name\": \"my_apps\"}" "$URL" > /dev/null || true
+  curl -X POST -H "Content-type: application/json" -d "{\"title\": \"Kubernetes $REAL_JOB_STAGE Deployment\", \"text\": \"$DATADOG_TEXT\", \"priority\": \"normal\", \"tags\": [$DATADOG_TAGS], \"alert_type\": \"info\", \"source_type_name\": \"my_apps\"}" "$URL" > /dev/null || true
 fi
-
 
 echo "Application is accessible at: ${CI_ENVIRONMENT_URL}"
 echo ""

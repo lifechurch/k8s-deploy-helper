@@ -1,0 +1,21 @@
+---
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  labels:
+    app: $CI_ENVIRONMENT_SLUG
+    environment: $CI_ENVIRONMENT_SLUG
+  name: web-$CI_ENVIRONMENT_SLUG
+  namespace: $KUBE_NAMESPACE
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1beta1
+    kind: Deployment
+    name: web-$CI_ENVIRONMENT_SLUG
+  minReplicas: $SCALE_MIN
+  maxReplicas: $SCALE_MAX
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      targetAverageUtilization: $SCALE_CPU
