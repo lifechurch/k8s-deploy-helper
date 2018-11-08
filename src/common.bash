@@ -139,44 +139,44 @@ insert_args() {
 
 set_defaults() {
 
-  if [[ -v $SCALE_REPLICAS ]]; then
+  if [[ -v SCALE_REPLICAS ]]; then
     export SCALE_MIN=$SCALE_REPLICAS
     export SCALE_MAX=$SCALE_REPLICAS
   fi
 
-  if [[ ! -v $SCALE_MIN ]]; then
+  if [[ ! -v SCALE_MIN ]]; then
     export SCALE_MIN=2
   fi
 
-  if [[ ! -v $SCALE_MAX ]]; then
+  if [[ ! -v SCALE_MAX ]]; then
     export SCALE_MAX=4
   fi
 
-  if [[ ! -v $SCALE_CPU ]]; then
+  if [[ ! -v SCALE_CPU ]]; then
     export SCALE_CPU=60
   fi
 
-  if [[ ! -v $PDB_MIN ]]; then
+  if [[ ! -v PDB_MIN ]]; then
     export PDB_MIN="50%"
   fi
 
-  if [[ ! -v $PORT ]]; then
+  if [[ ! -v PORT ]]; then
     export PORT=5000
   fi
 
-  if [[ ! -v $PROBE_URL ]]; then
+  if [[ ! -v PROBE_URL ]]; then
     export PROBE_URL="/"
   fi
 
-  if [[ ! -v $LIMIT_CPU ]]; then
+  if [[ ! -v LIMIT_CPU ]]; then
     export LIMIT_CPU="1"
   fi
 
-  if [[ ! -v $LIMIT_MEMORY ]]; then
+  if [[ ! -v LIMIT_MEMORY ]]; then
     export LIMIT_MEMORY="512Mi"
   fi
 
-  if [[ ! -v $LIVENESS_PROBE ]]; then
+  if [[ ! -v LIVENESS_PROBE ]]; then
     export LIVENESS_PROBE="/bin/true"
   fi
 }
