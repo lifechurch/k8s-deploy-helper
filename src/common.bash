@@ -112,7 +112,7 @@ buildargs_from() {
         stripped=$(echo $i | cut -d'_' -f2-)
         key=$(echo $stripped | cut -d'=' -f1)
         value=$(echo -n "${!fullkey}")
-        echo "Exporting $stripped as BUILDARG_$key"
+        echo "Exporting $key as BUILDARG_$key"
         export BUILDARG_$stripped
       done
     fi
