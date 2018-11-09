@@ -24,9 +24,6 @@ buildargs_from
 # Set buildargs
 set_buildargs
 
-# Look for KDH_INSERT_ARGS and edit Dockerfile
-insert_args
-
 if [[ -n "$CI_REGISTRY_USER" ]]; then
 	echo "Logging to GitLab Container Registry with CI credentials..."
 	docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
@@ -37,6 +34,8 @@ echo "Building application..."
 
 if [ "x$1" != "x" ]; then
 	echo "Building Dockerfile-based application using the Dockerfile at $1"
+    # Look for KDH_INSERT_ARGS and edit Dockerfile
+    insert_args
 	export SHORT=$(echo "$1" | cut -d'-' -f2-)
 	if [ "x$KDH_SKIP_LATEST" == "xtrue" ]; then
 		echo "KDH_SKIP_LATEST is true, not building from latest"
@@ -52,6 +51,8 @@ if [ "x$1" != "x" ]; then
 
 elif [[ -f Dockerfile ]]; then
 	echo "Building Dockerfile-based application..."
+    # Look for KDH_INSERT_ARGS and edit Dockerfile
+    insert_args
 	if [ "x$KDH_SKIP_LATEST" == "xtrue" ]; then
 		echo "KDH_SKIP_LATEST is true, not building from latest"
 		dockerbuild="docker build -t \"$CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG\" $buildargs ."
