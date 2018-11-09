@@ -18,7 +18,7 @@ k8s-deploy-helper (KDH) is a tool to help build and deploy containerized applica
 This project is not endorsed or affiliated with GitLab in any way.
 
 # Examples
-In addition to this documentation, the best way to get started is look at our [example repository](https://github.com/lifechurch/example-go)
+In addition to this documentation, the best way to get started is to look at our [example repository](https://github.com/lifechurch/example-go).
 
 Need some help getting started? Feel free to join us on [Open Digerati Slack](https://join.slack.com/t/opendigerati/shared_invite/enQtMjU4MTcwOTIxMzMwLTcyYjQ4NWEwMzBlOGIzNDgyM2U5NzExYTY3NmI0MDE4MTRmMTQ5NjNhZWEyNDY3N2IyOWZjMDIxM2MwYjEwMmQ) in #k8s and we'll be more than happy to assist.
 
@@ -98,7 +98,7 @@ In the example above, you would have to put the following line into your Dockerf
 ```ARG npmtoken```
 
 ## Automatic ARG Insertion
-Starting in 3.0, you can set a variable named ```KDH_INSERT_ARGS``` to ```true```, and k8s-deploy-helper will automatically take all your build arguments and insert corresponding ARG commands into your Dockerfile at build time, immediately after FROM lines. This makes GitLab the source of truth and you as a developer will no longer have to worry about setting things in multiple places. 
+Starting in 3.0, you can set a variable named ```KDH_INSERT_ARGS``` to ```true```, and k8s-deploy-helper will automatically take all your build arguments and insert corresponding ARG commands into your Dockerfile at build time, immediately after FROM lines. This makes GitLab the source of truth and you as a developer will no longer have to worry about setting things in multiple places.
 
 Inserting things into your Dockerfile at runtime is definitely considered a bit magic though, so we make this a feature you have to opt into.
 
@@ -143,7 +143,7 @@ You can use BUILDARG_ syntax from above to pass in build arguments, such as npm 
 
 # Kubernetes Deployment
 
-The key to success here is being able to use variables in your manifests. By using the right variables in the right places, you can have one single deployment manifest to maintain that can create deployments for review apps, staging, canaries and production. See our [example repository](https://github.com/lifechurch/example-go) for more information on how to properly setup your manifests.
+The key to success here is being able to use variables in your manifests. By using the right variables in the right places, you can have one single deployment manifest to maintain that can create deployments for review apps, staging, canaries, and production. See our [example repository](https://github.com/lifechurch/example-go) for more information on how to properly set up your manifests.
 
 ## Directory Structure
 To deploy applications into Kubernetes, you need to place your templated manifest files into a ```kubernetes``` directory at the root of your repository.
@@ -174,7 +174,7 @@ As of 3.0, k8s-deploy-helper will automatically support canary deployments via r
 
 The canary stage operates as a production deployment.
 
-Check out our (example repo)[https://www.github.com/lifechurch/example-go] to see how to setup your manifests to support this automation.
+Check out our (example repo)[https://www.github.com/lifechurch/example-go] to see how to set up your manifests to support this automation.
 
 ## Escaping $
 If you have to use a $ in your manifests outside the scope of environment variable substitution, you can use ${DOLLAR} in its place:
@@ -227,7 +227,7 @@ In the example above, there would be an entry in the secret file named ```mykeyn
 
 Sometimes you have secrets that have different values depending on if you're running in production or staging. Our helper allows you to do this by prefixing your secret with the uppercased version of your GitLab CI stage name.
 
-For example, let's say you have a secret called api_env, that needs to have different values depending on if you're deploying to one of three stages: review, staging or production.
+For example, let's say you have a secret called ```api_env```, that needs to have different values depending on if you're deploying to one of three stages: review, staging, or production.
 
 Instead of creating a variable in GitLab called ```SECRET_api_env```, you would create three:
 
@@ -250,7 +250,7 @@ Combined with a templated section like below, this would pull in the secret from
 ```
 ## Automated Secret Management in manifests
 
-New in version 3.0 is the {{SECRETS}} command. In the examples above, we gave the code that you would insert into manifests to make the secrets that k8s-deploy-helper creates in Kubernetes usable from within your deployments. This meant for adding a new secret, you would have to set the value of the secret in GitLab, and then add some code to the manifest to make it accessible. 
+New in version 3.0 is the {{SECRETS}} command. In the examples above, we gave the code that you would insert into manifests to make the secrets that k8s-deploy-helper creates in Kubernetes usable from within your deployments. This meant for adding a new secret, you would have to set the value of the secret in GitLab, and then add some code to the manifest to make it accessible.
 
 Wanting to make developers lives easier and make GitLab the source of truth, we introduced the {{SECRETS}} command that you can insert into your templates at the appropriate place, and when we render your manifest templates, we will loop through all the secrets that k8s-deploy-helper created on your behalf, and insert the appropriate code into the manifest for you!
 
@@ -274,7 +274,7 @@ NEWRELIC_STAGING_APP_ID=xxx
 NEWRELIC_PRODUCTION_APP_ID=xxx
 ```
 
-For Slack, simply set a Gitlab secret variable with the [Slack webhook url](https://api.slack.com/incoming-webhooks).
+For Slack, simply set a Gitlab secret variable with the [Slack webhook URL](https://api.slack.com/incoming-webhooks).
 
 ```
 SLACK_WEBHOOK=xxx
@@ -308,11 +308,11 @@ Starting in 3.1.0, we added an option for manifest-less deploys to help us migra
 
 * nginx Ingress Controller
 
-* certmanager or kube-lego that can issue let's encrypt certificiates via the ```kubernetes.io/tls-acme: 'true'``` annotation.
+* cert-manager or kube-lego that can issue "Let's Encrypt" certificates via the ```kubernetes.io/tls-acme: 'true'``` annotation.
 
 ## Conventions
 
-* We will obey Procfiles and every line will get its own deployment. Web will get an ingress, service, pod disruption budget, and autoscaling. Every other line will be treated as worker, and will just get autoscaling. 
+* We will obey Procfiles and every line will get its own deployment. Web will get an ingress, service, pod disruption budget, and autoscaling. Every other line will be treated as worker, and will just get autoscaling.
 
 ## Variables & Defaults
 
@@ -320,9 +320,9 @@ Starting in 3.1.0, we added an option for manifest-less deploys to help us migra
 
 * LIMIT_CPU: 1 - CPU Resource Limit
 
-* LIMIT_MEMORY: 512Mi - Memory Resource Limit 
+* LIMIT_MEMORY: 512Mi - Memory Resource Limit
 
-* SCALE_REPLICAS (Production Only): Not Set - If SCALE_REPLICAS is set, SCALE_MIN and SCALE_MAX will be set to the value of SCALE_REPLICAS. 
+* SCALE_REPLICAS (Production Only): Not Set - If SCALE_REPLICAS is set, SCALE_MIN and SCALE_MAX will be set to the value of SCALE_REPLICAS.
 
 * SCALE_MIN (Production Only): 2 - Minimum amount of running pods set in the HPA
 
@@ -330,19 +330,19 @@ Starting in 3.1.0, we added an option for manifest-less deploys to help us migra
 
 * SCALE_CPU (Production Only): 60 - CPU usage at which autoscaling occurs
 
-* PDB_MIN (Production Only): 50% - minAvailable percentage.
+* PDB_MIN (Production Only): 50% - Minimum available percentage
 
 * PORT: 5000 - The port your app listens on
 
-* PROBE_URL: / - The URL that will get hit for readiness probe.
+* PROBE_URL: / - The URL that will get hit for readiness probe
 
-* LIVENESS_PROBE: /bin/true - The command used for the liveness probe.
+* LIVENESS_PROBE: /bin/true - The command used for the liveness probe
 
 ### Other (workers)
 
-To set variables for your other runtimes specified in the Procfile, you can create variables with this pattern. For example, let's say you have a worker that's named ```worker``` in your Procfile and you want to assign 2 CPU to each pod, you would set a variable named ```worker_LIMIT_CPU``` to ```2```. 
+To set variables for your other runtimes specified in the Procfile, you can create variables with this pattern. For example, let's say you have a worker that's named ```worker``` in your Procfile and you want to assign 2 CPU to each pod, you would set a variable named ```worker_LIMIT_CPU``` to ```2```.
 
-Variables you can set to control your worker stages are listed below, along with their default values. We'll refer to the name of your stage as ${1}. 
+Variables you can set to control your worker stages are listed below, along with their default values. We'll refer to the name of your stage as ${1}.
 
 ```
   ${1}_LIMIT_CPU: 1
@@ -366,4 +366,4 @@ We use [SemVer](http://semver.org/) for versioning. For the versions available, 
 
 # License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
