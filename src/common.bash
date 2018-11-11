@@ -235,7 +235,7 @@ set_buildargs() {
   fi
 }
 
-set_env_buildpack() {
+build_env() {
   IFS=$'\n'
   if env | grep -i -e '^BUILDARG_' > /dev/null; then
     ALL_VARIABLES=$(env | grep -i -e '^BUILDARG_')
@@ -244,9 +244,8 @@ set_env_buildpack() {
       stripped=$(echo $i | cut -d'_' -f2-)
       key=$(echo $stripped | cut -d'=' -f1)
       value=$(echo -n "${!fullkey}")
-      buildenv="${buildenv}-e $key='$value' "
+      echo "$key=$value" >> $CI_PROJECT_DIR/.env
     done
-    export buildenv=$buildenv
   fi
 }
 

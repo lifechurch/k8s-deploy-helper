@@ -67,8 +67,8 @@ elif [[ -f Dockerfile ]]; then
 else
     export DOCKER_HOST='tcp://docker:2375'
 	echo "No Dockerfile at root of repo. Using herokuish build packs."
-    echo "Building envpack string"
-    set_env_buildpack
+    echo "Building env file"
+    build_env
     echo "Starting herokuish"
     dockerrun="docker run -i $buildenv --name=\"$CI_CONTAINER_NAME\" -v \"$(pwd):/tmp/app:ro\" gliderlabs/herokuish /bin/herokuish buildpack build"
 	eval $dockerrun
