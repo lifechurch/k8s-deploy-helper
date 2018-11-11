@@ -72,6 +72,7 @@ else
     echo "Starting herokuish"
     dockerrun="docker run -i --name=\"$CI_CONTAINER_NAME\" -v \"$(pwd):/tmp/app:ro\" gliderlabs/herokuish /bin/herokuish buildpack build"
 	eval $dockerrun
+	docker exec "$CI_CONTAINER_NAME" rm /app/.env
     docker commit "$CI_CONTAINER_NAME" "$CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG"
 	docker rm "$CI_CONTAINER_NAME"
 	echo "Configuring $CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG docker image..."

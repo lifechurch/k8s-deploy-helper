@@ -237,6 +237,8 @@ set_buildargs() {
 
 build_env() {
   IFS=$'\n'
+  echo "Removing .env file"
+  rm $CI_PROJECT_DIR/.env &> /dev/null || true
   if env | grep -i -e '^BUILDARG_' > /dev/null; then
     ALL_VARIABLES=$(env | grep -i -e '^BUILDARG_')
     for i in $ALL_VARIABLES; do
