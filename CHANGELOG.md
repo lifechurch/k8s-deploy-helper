@@ -1,6 +1,6 @@
 # Version 3.1.1
 
-Docker Image: quay.io/lifechurch/k8s-deploy-helper:3.1.0
+Docker Image: quay.io/lifechurch/k8s-deploy-helper:3.1.1
 
 ## Bug Fixes
 
