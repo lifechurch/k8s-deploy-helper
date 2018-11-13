@@ -100,7 +100,7 @@ buildargs_from() {
         stripped=$(echo $i | cut -d'_' -f2-)
         key=$(echo $stripped | cut -d'=' -f1)
         value=$(echo -n "${!fullkey}")
-        echo "Exporting $stripped as BUILDARG_$key"
+        echo "Exporting $key as BUILDARG_$key"
         export BUILDARG_$stripped
       done
     fi
@@ -112,7 +112,7 @@ buildargs_from() {
         stripped=$(echo $i | cut -d'_' -f2-)
         key=$(echo $stripped | cut -d'=' -f1)
         value=$(echo -n "${!fullkey}")
-        echo "Exporting $stripped as BUILDARG_$key"
+        echo "Exporting $key as BUILDARG_$key"
         export BUILDARG_$stripped
       done
     fi
@@ -235,8 +235,10 @@ set_buildargs() {
   fi
 }
 
-set_env_buildpack() {
+build_env() {
   IFS=$'\n'
+  echo "Removing .env file"
+  rm $CI_PROJECT_DIR/.env &> /dev/null || true
   if env | grep -i -e '^BUILDARG_' > /dev/null; then
     ALL_VARIABLES=$(env | grep -i -e '^BUILDARG_')
     for i in $ALL_VARIABLES; do
@@ -244,9 +246,8 @@ set_env_buildpack() {
       stripped=$(echo $i | cut -d'_' -f2-)
       key=$(echo $stripped | cut -d'=' -f1)
       value=$(echo -n "${!fullkey}")
-      buildenv="${buildargs}-e $key='$value' "
+      echo "$key=$value" >> $CI_PROJECT_DIR/.env
     done
-    export buildenv=$buildenv
   fi
 }
 
