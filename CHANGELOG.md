@@ -1,3 +1,14 @@
+# Version 3.1.1
+
+Docker Image: quay.io/lifechurch/k8s-deploy-helper:3.1.0
+
+## Bug Fixes
+
+* BUILDARGS_FROM now works with buildpack builds.
+
+* BUILDARGS_FROM is less chatty.
+
+
 # Version 3.1.0
 
 Docker Image: quay.io/lifechurch/k8s-deploy-helper:3.1.0
