@@ -1,3 +1,10 @@
+# Version 3.1.2
+Docker Image: quay.io/lifechurch/k8s-deploy-helper:3.1.2
+
+## New Feature
+
+* Slack Deploy Events now support separate notifications per stage, allowing you to only send deploy events on specific stages if desired, or to different Slack channels for each stage.
+
 # Version 3.1.1
 
 Docker Image: quay.io/lifechurch/k8s-deploy-helper:3.1.1
