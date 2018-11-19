@@ -342,3 +342,4 @@ get_deploy_events() {
         fi
     done
   fi
+}
