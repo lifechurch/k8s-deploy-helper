@@ -5,6 +5,11 @@ set -eo pipefail
 export CI_CONTAINER_NAME="ci_job_build_$CI_JOB_ID"
 export CI_REGISTRY_TAG="$CI_COMMIT_SHA"
 
+export BUILD_START_DATE=$(date +%Y/%m/%d)
+export BUILD_START_YEAR=$(date +%Y)
+export BUILD_START_MONTH=$(date +%m)
+export BUILD_START_DAY=$(date +%d)
+
 if [[ "$CI_JOB_STAGE" == "review" ]]; then
   export STAGE="$CI_ENVIRONMENT_SLUG"
 else

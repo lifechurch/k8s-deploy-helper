@@ -1,3 +1,11 @@
+# Version 3.1.2
+
+Docker Image: quay.io/lifechurch/k8s-deploy-helper:3.1.2
+
+## New Features
+
+* BUILD - Added build start date variables
+
 # Version 3.1.1
 
 Docker Image: quay.io/lifechurch/k8s-deploy-helper:3.1.1

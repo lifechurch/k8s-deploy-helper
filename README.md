@@ -354,6 +354,12 @@ Variables you can set to control your worker stages are listed below, along with
   ${1}_SCALE_CPU : 60%
 ```
 
+### Build Start Dates
+
+* BUILD_START_DATE - yyyy/mm/dd eg. 2018/12/28
+* BUILD_START_YEAR - yyyy eg. 2018
+* BUILD_START_MONTH - month (01..12)
+* BUILD_START_DAY - day of month (e.g., 01)
 
 # Contributing
 
