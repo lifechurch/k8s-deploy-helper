@@ -1,7 +1,12 @@
-# Version 3.1.2
-Docker Image: quay.io/lifechurch/k8s-deploy-helper:3.1.2
+# Version 4.0.0
 
-## New Feature
+Docker Image: quay.io/lifechurch/k8s-deploy-helper:3.1.1
+
+## Backwards Incompatible Changes
+
+* Starting in GitLab 11.5, GitLab decided to start managing service accounts for namespaces automatically. This broke k8s-deploy-helper because KUBE_TOKEN was no longer the token you specified in the cluster. Moving forward, k8s-deploy-helper is not going to generate a Kubernetes configuration itself, it will rely on GitLab to create it for us.
+
+## New Features
 
 * Slack Deploy Events now support separate notifications per stage, allowing you to only send deploy events on specific stages if desired, or to different Slack channels for each stage.
 
