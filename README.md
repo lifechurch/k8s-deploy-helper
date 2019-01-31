@@ -274,10 +274,23 @@ NEWRELIC_STAGING_APP_ID=xxx
 NEWRELIC_PRODUCTION_APP_ID=xxx
 ```
 
-For Slack, simply set a Gitlab secret variable with the [Slack webhook URL](https://api.slack.com/incoming-webhooks).
+For Slack, you can simply set a Gitlab secret variable with the [Slack webhook URL](https://api.slack.com/incoming-webhooks) if you want notifications for every stage.
 
 ```
 SLACK_WEBHOOK=xxx
+```
+
+If you want notifications for specific stages use the following format.
+
+```
+SLACK_{{STAGE}}_WEBHOOK
+```
+
+E.g.
+
+```
+SLACK_STAGING_WEBHOOK=xxx
+SLACK_PRODUCTION_WEBHOOK=xxx
 ```
 
 For Datadog, you *must* set your Datadog API key with:

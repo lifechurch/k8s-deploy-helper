@@ -332,7 +332,14 @@ get_deploy_events() {
     done
   fi
 
-  if env | grep -i -e '^SLACK_WEBHOOK' > /dev/null; then
-    export SLACK_WEBHOOK_URL=$(env | grep -i -e '^SLACK_WEBHOOK' | cut -d'=' -f2)
+  if env | grep -i -e '^SLACK' > /dev/null; then
+    SLACK=$(env | grep -i -e '^SLACK')
+    for i in $SLACK; do
+        if echo "$i" | grep -i -e "$CI_JOB_STAGE" | grep -i -e "WEBHOOK" > /dev/null; then
+            export SLACK_WEBHOOK_URL=$(echo $i | cut -d'=' -f2)
+        elif echo "$i" | grep -i -e "^SLACK_WEBHOOK" > /dev/null; then
+            export SLACK_WEBHOOK_URL=$(echo $i | cut -d'=' -f2)
+        fi
+    done
   fi
 }
