@@ -160,7 +160,7 @@ if [ -d "$CI_PROJECT_DIR/kubernetes" ]; then
       rollout+=("$manifest_kind/$manifest_name")
     fi
 
-    # If we get here and are still in this loop, it means it should be safe to apply the manifest  
+    # If we get here and are still in this loop, it means it should be safe to apply the manifest
     echo "Applying manifest: $filename"
     kubectl apply -f $filename
   done
@@ -180,12 +180,28 @@ done
 get_deploy_events
 if [ "$NEWRELIC_API_KEY" ] && [ "$NEWRELIC_APP_ID" ]; then
   echo "Sending deploy event to NewRelic..."
-  curl --silent -H "x-api-key:$NEWRELIC_API_KEY" -d "deployment[application_id]=$NEWRELIC_APP_ID&deployment[user]=k8s-deploy" https://rpm.newrelic.com/deployments.xml > /dev/null || true
+  curl --silent -X POST "https://api.newrelic.com/v2/applications/$NEWRELIC_APP_ID/deployments.json" \
+     -H "X-Api-Key:$NEWRELIC_API_KEY" -i \
+     -H "Content-Type: application/json" \
+     -d \
+"{
+  \"deployment\": {
+    \"revision\": \"$CI_COMMIT_SHA\",
+    \"user\": \"$GITLAB_USER_LOGIN\"
+  }
+}" > /dev/null || true
 fi
 
 if [ "$SLACK_WEBHOOK_URL" ]; then
   echo "Sending deploy event to Slack channel..."
-  curl --silent -X POST -H 'Content-type: application/json' --data "{\"text\": \"Kubernetes Deployment\", \"attachments\": [ { \"color\": \"good\", \"text\": \"Successfully deployed to $REAL_JOB_STAGE\" }]}" $SLACK_WEBHOOK_URL > /dev/null || true
+  curl --silent -X POST -H 'Content-type: application/json' \
+  -d \
+"{
+    \"text\": \"Kubernetes Deployment to $KUBE_NAMESPACE by $GITLAB_USER_LOGIN\",
+    \"attachments\": [
+        {\"color\": \"good\", \"text\": \"Successfully deployed to $REAL_JOB_STAGE\"}
+    ]
+}" $SLACK_WEBHOOK_URL > /dev/null || true
 fi
 
 if [ "$DATADOG_API_KEY" ]; then
@@ -197,7 +213,16 @@ if [ "$DATADOG_API_KEY" ]; then
   if [[ -z "$DATADOG_TEXT" ]]; then
       DATADOG_TEXT="$REAL_JOB_STAGE $CI_REGISTRY_TAG"
   fi
-  curl -X POST -H "Content-type: application/json" -d "{\"title\": \"Kubernetes $REAL_JOB_STAGE Deployment\", \"text\": \"$DATADOG_TEXT\", \"priority\": \"normal\", \"tags\": [$DATADOG_TAGS], \"alert_type\": \"info\", \"source_type_name\": \"my_apps\"}" "$URL" > /dev/null || true
+  curl -X POST -H "Content-type: application/json" \
+  -d \
+"{
+    \"title\": \"Kubernetes $REAL_JOB_STAGE Deployment\",
+    \"text\": \"$DATADOG_TEXT\",
+    \"priority\": \"normal\",
+    \"tags\": [\"$DATADOG_TAGS\"],
+    \"alert_type\": \"info\",
+    \"source_type_name\": \"my_apps\"
+}" "$URL" > /dev/null || true
 fi
 
 echo "Application is accessible at: ${CI_ENVIRONMENT_URL}"
