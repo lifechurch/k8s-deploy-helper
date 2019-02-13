@@ -52,7 +52,7 @@ Docker Image: quay.io/lifechurch/k8s-deploy-helper:3.1.0
 
 * Deploy Token Usage - Previous versions used an actual GitLab username because GitLab didn't have persistent deploy tokens until recently. Now that this feature is in GitLab, we're going to stop using the shared credentials as this is much more secure. Create a deploy token at Settings->Repository->Deploy Tokens and make one named gitlab-deploy-token with read_registry access. As long as it's named gitlab-deploy-token, that's all you should have to do.
 
-* Canary Usage - Delete your canary manifest templates. We will create them automatically now. Make sure track: stable is present as labels in your deployments.
+* Canary Usage - Delete your canary manifest templates. We will create them automatically now. Make sure track: stable is present as labels in deployments you want to go out in the canary stage.
 
 ## New Features
 * DEPLOY - Canary manifests are now dynamically created in canary stages.
