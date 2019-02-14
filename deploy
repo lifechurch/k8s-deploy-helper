@@ -25,7 +25,7 @@ kind: Namespace
 apiVersion: v1
 metadata:
   name: $KUBE_NAMESPACE
-EOF 
+EOF
 
 echo "Creating registry secret"
 kubectl create secret -n $KUBE_NAMESPACE \
