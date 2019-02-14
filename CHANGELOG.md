@@ -1,3 +1,13 @@
+# Version 4.0.1
+
+Docker Image: quay.io/lifechurch/k8s-deploy-helper:4.0.1
+
+## Bug Fixes
+
+* Canary stage was deploying manifests without ```track: stable``` label. This shouldn't happen. Fixed.
+
+* KDH no longer tries to create the namespace if it exists already. This was causing issues because GitLab is now supposed to be creating the namespace when you add the GitLab integration.
+
 # Version 4.0.0
 
 Docker Image: quay.io/lifechurch/k8s-deploy-helper:4.0.0
