@@ -1,4 +1,18 @@
-# Version 4.0.1
+# Version 4.0.2
+
+Docker Image: quay.io/lifechurch/k8s-deploy-helper:4.0.2
+
+## Bug Fixes
+
+* Version 4.0.1 introduced a bug where deployment rollouts were not checked correctly. This is fixed.
+
+## New Features
+
+* New Relic deployment notifications now use the v2 API
+
+* Deployment notifications have more contextual information about what was deployed.
+
+# Version 4.0.1 - DO NOT USE
 
 Docker Image: quay.io/lifechurch/k8s-deploy-helper:4.0.1
 
