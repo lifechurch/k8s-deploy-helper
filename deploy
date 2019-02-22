@@ -150,16 +150,16 @@ if [ -d "$CI_PROJECT_DIR/kubernetes" ]; then
         sed -i -e "s/name: $appname/name: canary-$appname/g" $filename
         echo "Done transforming manifest, going to cat it out so you can see what it's doing"
         cat $filename
-
-        # If this is a kind of application manifest and isn't something we need to worry about skipping, then add it to the rollout check
-        manifest_name=$(yq read $filename metadata.name)
-        rollout+=("$manifest_kind/$manifest_name")
       fi
 
       if [[ "$ISCANARY" == "true" && "$track" != "stable" ]]; then
         echo "We are in a canary deployment and this is not a stable manifest, so we aren't going to deploy it."
         continue
       fi
+
+      # Add deployment to rollout
+      manifest_name=$(yq read $filename metadata.name)
+      rollout+=("$manifest_kind/$manifest_name")
     fi
 
     # If we get here and are still in this loop, it means it should be safe to apply the manifest
