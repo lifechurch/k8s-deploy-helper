@@ -97,7 +97,7 @@ if [ -d "$CI_PROJECT_DIR/kubernetes" ]; then
         echo "Found a tab in $filename. Tabs are not allowed in manifests. Quitting."
         exit 1
     fi
-    envsubst < $filename > /tmp/kubernetes/$basefile
+    envsubst "`env | awk -F = '{printf \" \$%s\", \$1}'`" < $filename > /tmp/kubernetes/$basefile    
     while grep "{{SECRETS}}" /tmp/kubernetes/$basefile | grep -v "#"; do
       grep -n "{{SECRETS}}" /tmp/kubernetes/$basefile | grep -v "#" | head -n1 | while read -r line ; do
         lineno=$(echo $line | cut -d':' -f1)
