@@ -39,11 +39,10 @@ if [ "x$1" != "x" ]; then
 	export SHORT=$(echo "$1" | cut -d'-' -f2-)
 	if [ "x$KDH_SKIP_LATEST" == "xtrue" ]; then
 		echo "KDH_SKIP_LATEST is true, not building from latest"
-		dockerbuild="docker build -t \"$CI_REGISTRY_IMAGE:$SHORT-$CI_REGISTRY_TAG\" $buildargs -f $1 ."
+		dockerbuild="docker build --pull -t \"$CI_REGISTRY_IMAGE:$SHORT-$CI_REGISTRY_TAG\" $buildargs -f $1 ."
 		eval $dockerbuild
 	else
-		docker pull $CI_REGISTRY_IMAGE:$SHORT-latest || true
-		dockerbuild="docker build --cache-from \"$CI_REGISTRY_IMAGE:$SHORT-latest\" -t \"$CI_REGISTRY_IMAGE:$SHORT-$CI_REGISTRY_TAG\" $buildargs -f $1 ."
+		dockerbuild="docker build --pull --cache-from \"$CI_REGISTRY_IMAGE:$SHORT-latest\" -t \"$CI_REGISTRY_IMAGE:$SHORT-$CI_REGISTRY_TAG\" $buildargs -f $1 ."
 		eval $dockerbuild
 	fi
 	echo "Pushing to GitLab Container Registry..."
@@ -55,11 +54,11 @@ elif [[ -f Dockerfile ]]; then
     insert_args
 	if [ "x$KDH_SKIP_LATEST" == "xtrue" ]; then
 		echo "KDH_SKIP_LATEST is true, not building from latest"
-		dockerbuild="docker build -t \"$CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG\" $buildargs ."
+		dockerbuild="docker build --pull -t \"$CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG\" $buildargs ."
 		eval $dockerbuild
 	else
 		docker pull $CI_REGISTRY_IMAGE:latest || true
-		dockerbuild="docker build --cache-from \"$CI_REGISTRY_IMAGE:latest\" -t \"$CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG\" $buildargs ."
+		dockerbuild="docker build --pull --cache-from \"$CI_REGISTRY_IMAGE:latest\" -t \"$CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG\" $buildargs ."
 		eval $dockerbuild
 	fi
 	echo "Pushing to GitLab Container Registry..."
