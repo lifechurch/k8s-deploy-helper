@@ -1,3 +1,11 @@
+# Version 4.0.3
+
+Docker Image: quay.io/lifechurch/k8s-deploy-helper:4.0.3
+
+## Feature
+
+* BUILD: Docker builds now pass the --pull flag in case you build from an image that pushes different content to the same tag.
+
 # Version 4.0.2
 
 Docker Image: quay.io/lifechurch/k8s-deploy-helper:4.0.2
