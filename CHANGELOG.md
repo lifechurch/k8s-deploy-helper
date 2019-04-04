@@ -1,3 +1,13 @@
+# Version 5.0.0
+
+Docker Image: quay.io/lifechurch/k8s-deploy-helper:5.0.0
+
+## Feature
+
+* DEPLOY: KDH will determine the Kubernetes version you are deploying against and run kubeval manifests specifically against that version.
+
+* DEPLOY: You can now set KDH_SKIP_KUBEVAL variable to true in order to skip kubeval runs.
+
 # Version 4.0.3
 
 Docker Image: quay.io/lifechurch/k8s-deploy-helper:4.0.3

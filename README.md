@@ -169,6 +169,11 @@ kubernetes
 ## Debugging
 Starting in 3.0, k8s-deploy-helper renders all templates before trying to apply them. All rendered manifests are displayed in the runner for easy debugging. The rendered templates are put in ```/tmp/kubernetes``` if you want to grab them using GitLab artifacts for some reason. In addition, we now use kubeval.
 
+## kubeval
+KDH will try to figure out the version of Kubernetes you are deploying to, and then target kubeval specificaly for that version.
+
+Optionally, you can set the KDH_SKIP_KUBEVAL variable to true in order to skip the use of kubeval.
+
 ## Canary Deploys
 As of 3.0, k8s-deploy-helper will automatically support canary deployments via rewriting your deployment manifests. To use this functionality, you just need to be in a GitLab CI stage named canary, and k8s-deploy-helper will search for manifests where the ```track``` label is set to ```stable```.
 
