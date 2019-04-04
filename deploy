@@ -37,6 +37,9 @@ kubectl create secret -n $KUBE_NAMESPACE \
   -o yaml --dry-run | kubectl apply -n $KUBE_NAMESPACE -f -
 echo "Registry secret created"
 
+echo "Getting your Kubernetes version for kubeval purposes"
+kube_version=$(kubectl version --short=true | grep Server | awk '{print $3}' | cut -d'-' -f1 | cut -d'v' -f2)
+
 echo
 export SECRET_KDH_DUMMY="useless"
 echo "Creating secrets from GitLab variables"
@@ -119,15 +122,17 @@ if [ -d "$CI_PROJECT_DIR/kubernetes" ]; then
   echo "Evaluating rendered manifests."
   # Dump the templated manifests to the log for easier debugging and run kubeval against each
   for filename in /tmp/kubernetes/*.yaml; do
-    echo "Checking for non-K8s native manifests"
+    echo "Checking for GKE native manifests"
     if grep -q 'apiVersion: cloud.google.com' $filename; then
-        echo "Found non-native K8s manifest - skipping - $filename"
+        echo "Found GKE K8s manifest - skipping - $filename"
     else
-        echo "Running kubeval against $filename"
         echo
         cat "$filename"
         echo
-        kubeval $filename
+        if [ "x$KDH_SKIP_KUBEVAL" == "xtrue" ]; the
+          echo "Running kubeval against $filename"
+          kubeval -v $kube_version $filename
+        fi       
     fi
   done
   echo "Evaluation finished."
