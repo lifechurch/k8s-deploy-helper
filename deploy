@@ -106,7 +106,7 @@ if [ -d "$CI_PROJECT_DIR/kubernetes" ]; then
     fi
     envsubst < $filename > /tmp/kubernetes/$basefile
     while grep "{{SECRETS}}" /tmp/kubernetes/$basefile | grep -v "#"; do
-      line=$(grep -n "{{SECRETS}}" /tmp/kubernetes/$basefile | grep -v "#" | head -n1)
+      line=$(grep -n -m 1 "{{SECRETS}}" /tmp/kubernetes/$basefile | grep -v "#")
       lineno=$(echo $line | cut -d':' -f1)
       spaces=$(sed "${lineno}!d" /tmp/kubernetes/$basefile | awk -F'[^ \t]' '{print length($1)}')
       spaces=$((spaces-1))
