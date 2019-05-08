@@ -7,6 +7,10 @@ while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symli
   [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
 done
 
+trap 'last_command=$current_command; current_command=$BASH_COMMAND' DEBUG
+# echo an error message before exiting
+trap 'echo "\"${last_command}\" command filed with exit code $?."' EXIT
+
 export DEPLOY_ROOT_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 source "$DEPLOY_ROOT_DIR/src/common.bash"
@@ -102,18 +106,17 @@ if [ -d "$CI_PROJECT_DIR/kubernetes" ]; then
     fi
     envsubst < $filename > /tmp/kubernetes/$basefile
     while grep "{{SECRETS}}" /tmp/kubernetes/$basefile | grep -v "#"; do
-      grep -n "{{SECRETS}}" /tmp/kubernetes/$basefile | grep -v "#" | head -n1 | while read -r line ; do
-        lineno=$(echo $line | cut -d':' -f1)
-        spaces=$(sed "${lineno}!d" /tmp/kubernetes/$basefile | awk -F'[^ \t]' '{print length($1)}')
-        spaces=$((spaces-1))
-        # Delete line that had {{SECRETS}}
-        sed -i -e "${lineno}d" /tmp/kubernetes/$basefile
-        while IFS='' read -r secretline || [[ -n "$secretline" ]]; do
-          newline=$(printf "%*s%s" $spaces "" "$secretline")
-          sed -i "${lineno}i\ ${newline}" /tmp/kubernetes/$basefile
-          lineno=$((lineno+1))
-        done < "/tmp/secrets.yaml"
-      done
+      line=$(grep -n -m 1 "{{SECRETS}}" /tmp/kubernetes/$basefile | grep -v "#")
+      lineno=$(echo $line | cut -d':' -f1)
+      spaces=$(sed "${lineno}!d" /tmp/kubernetes/$basefile | awk -F'[^ \t]' '{print length($1)}')
+      spaces=$((spaces-1))
+      # Delete line that had {{SECRETS}}
+      sed -i -e "${lineno}d" /tmp/kubernetes/$basefile
+      while IFS='' read -r secretline || [[ -n "$secretline" ]]; do
+        newline=$(printf "%*s%s" $spaces "" "$secretline")
+        sed -i "${lineno}i\ ${newline}" /tmp/kubernetes/$basefile
+        lineno=$((lineno+1))
+      done < "/tmp/secrets.yaml"
     done
     echo "Rendered manifest template to /tmp/kubernetes/$basefile"
   done

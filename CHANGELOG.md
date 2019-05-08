@@ -1,3 +1,13 @@
+# Version 5.0.1
+
+Docker Image: quay.io/lifechurch/k8s-deploy-helper:5.0.1
+
+## Bug Fixes
+
+* Fixed race condition in {{SECRETS}} substitution.
+
+* Added additional debugging to trap bash errors.
+
 # Version 5.0.0
 
 Docker Image: quay.io/lifechurch/k8s-deploy-helper:5.0.0
