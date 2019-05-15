@@ -1,3 +1,17 @@
+# Version 6.0.0
+
+Docker Image: quay.io/lifechurch/k8s-deploy-helper:6.0.0
+
+## Updates
+
+* Updated docker dind image to docker:18.06.3-ce-dind
+
+* Updated Helm to 2.13.1
+
+* Updated kubectl to 1.12.6
+
+* Updated kubeval to 0.8.1
+
 # Version 5.0.1
 
 Docker Image: quay.io/lifechurch/k8s-deploy-helper:5.0.1
