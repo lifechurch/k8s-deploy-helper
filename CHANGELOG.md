@@ -1,6 +1,6 @@
-# Version 6.0.1
+# Version 6.0.2
 
-Docker Image: quay.io/lifechurch/k8s-deploy-helper:6.0.1
+Docker Image: quay.io/lifechurch/k8s-deploy-helper:6.0.2
 
 ## Updates
 
