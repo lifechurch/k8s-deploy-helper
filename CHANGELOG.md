@@ -6,6 +6,10 @@ Docker Image: quay.io/lifechurch/k8s-deploy-helper:6.0.1
 
 * Updated kubeval to 0.11.0
 
+## Bugfixes
+
+* kubeval will skip missing schemas now
+
 # Version 6.0.0
 
 Docker Image: quay.io/lifechurch/k8s-deploy-helper:6.0.0
