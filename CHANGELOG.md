@@ -1,10 +1,10 @@
-# Version 6.0.2
+# Version 6.0.3
 
 Docker Image: quay.io/lifechurch/k8s-deploy-helper:6.0.2
 
 ## Updates
 
-* Updated kubeval to 0.11.0
+* Updated kubeval to 0.12.0
 
 ## Bugfixes
 

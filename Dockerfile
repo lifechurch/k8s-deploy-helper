@@ -3,7 +3,7 @@ FROM docker:18.06.3-ce-dind
 ENV HELM_VERSION="2.13.1" \
   KUBECTL_VERSION="1.12.6" \
   YQ_VERSION="2.1.1" \ 
-  KUBEVAL_VERSION="0.11.0" \ 
+  KUBEVAL_VERSION="0.12.0" \ 
   GLIBC_VERSION="2.28-r0" \
   PATH=/opt/kubernetes-deploy:$PATH
 

@@ -134,7 +134,7 @@ if [ -d "$CI_PROJECT_DIR/kubernetes" ]; then
         echo
         if [ "x$KDH_SKIP_KUBEVAL" != "xtrue" ]; then
           echo "Running kubeval against $filename"
-          kubeval -v $kube_version --skip-crd-schema-miss $filename
+          kubeval -v $kube_version --ignore-missing-schemas $filename
         fi       
     fi
   done
