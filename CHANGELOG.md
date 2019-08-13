@@ -6,6 +6,8 @@ Docker Image: quay.io/lifechurch/k8s-deploy-helper:7.0.0
 
 * Depracated use of ${DOLLAR} in manifests in favor of telling envsubst to only substitute environment variables that exist in the CI run. If you previously used ${DOLLAR}, you can just remove the {DOLLAR} portion and it should work fine.
 
+The following command (on macOS) should do the replacement for you: ```find kubernetes -type f -name '*.yaml' | xargs -I {} sed -i '' -e "s/\${DOLLAR}/$/g" "{}"```
+
 ## Feature
 
 * Datadog notification text is more easily searchable. You can now overlay KDH deployment events by doing a string like "KDH Deployment: $NAMESPACE production", substituting $NAMESPACE for your namespace.
