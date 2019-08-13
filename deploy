@@ -222,17 +222,17 @@ if [ "$DATADOG_API_KEY" ]; then
     URL="$URL&app_key=$DATADOG_APP_KEY"
   fi
   if [[ -z "$DATADOG_TEXT" ]]; then
-      DATADOG_TEXT="$REAL_JOB_STAGE $CI_REGISTRY_TAG"
+      DATADOG_TEXT="KDH Deployment: $KUBE_NAMESPACE $REAL_JOB_STAGE by $GITLAB_USER_LOGIN Tag: $CI_REGISTRY_TAG"
   fi
   curl -X POST -H "Content-type: application/json" \
   -d \
 "{
-    \"title\": \"Kubernetes $REAL_JOB_STAGE Deployment\",
+    \"title\": \"KDH Deployment: $KUBE_NAMESPACE\",
     \"text\": \"$DATADOG_TEXT\",
     \"priority\": \"normal\",
     \"tags\": [\"$DATADOG_TAGS\"],
     \"alert_type\": \"info\",
-    \"source_type_name\": \"my_apps\"
+    \"source_type_name\": \"KDH\"
 }" "$URL" > /dev/null || true
 fi
 
