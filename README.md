@@ -181,26 +181,8 @@ The canary stage operates as a production deployment.
 
 Check out our (example repo)[https://www.github.com/lifechurch/example-go] to see how to set up your manifests to support this automation.
 
-## Escaping $
-If you have to use a $ in your manifests outside the scope of environment variable substitution, you can use ${DOLLAR} in its place:
-
-```
-  annotations:
-    ingress.kubernetes.io/configuration-snippet: |
-      if (${DOLLAR}denynotfromlocalbind) {
-        return 403;
-      }
-```
-
-This will evaluate to the following before it's applied:
-
-```
-  annotations:
-    ingress.kubernetes.io/configuration-snippet: |
-      if ($denynotfromlocalbind) {
-        return 403;
-      }
-```
+## Environment Variable Substitution
+As of 7.0, k8s-deploy-helper added some logic that will only substitute environment variables that exist into your manifest files.  
 
 # Secret Management
 

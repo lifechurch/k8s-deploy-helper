@@ -1,3 +1,15 @@
+# Version 7.0.0
+
+Docker Image: quay.io/lifechurch/k8s-deploy-helper:7.0.0
+
+## Backwards Incompatible Changes
+
+* Depracated use of ${DOLLAR} in manifests in favor of telling envsubst to only substitute environment variables that exist in the CI run. If you previously used ${DOLLAR}, you can just remove the {DOLLAR} portion and it should work fine.
+
+## Feature
+
+* Datadog notification text is more easily searchable. You can now overlay KDH deployment events by doing a string like "KDH Deployment: $NAMESPACE production", substituting $NAMESPACE for your namespace.
+
 # Version 6.0.3
 
 Docker Image: quay.io/lifechurch/k8s-deploy-helper:6.0.3
