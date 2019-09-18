@@ -1,3 +1,11 @@
+# Version 7.0.1
+
+Docker Image: quay.io/lifechurch/k8s-deploy-helper:7.0.1
+
+## Updates
+
+* Updated helm to 2.14.1
+
 # Version 7.0.0
 
 Docker Image: quay.io/lifechurch/k8s-deploy-helper:7.0.0
