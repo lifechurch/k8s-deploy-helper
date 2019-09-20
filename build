@@ -68,7 +68,7 @@ else
     echo "Building env file"
     build_env
     echo "Starting herokuish"
-    dockerrun="docker run -i --name=\"$CI_CONTAINER_NAME\" -v \"$(pwd):/tmp/app:ro\" gliderlabs/herokuish /bin/bash -c \"/bin/herokuish buildpack build && rm /app/.env\""
+    dockerrun="docker run -i --name=\"$CI_CONTAINER_NAME\" -v \"$(pwd):/tmp/app:ro\" gliderlabs/herokuish /bin/bash -c \"/bin/herokuish buildpack build && (rm /app/.env || true)\""
 	eval $dockerrun
     docker commit "$CI_CONTAINER_NAME" "$CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG"
 	docker rm "$CI_CONTAINER_NAME"
