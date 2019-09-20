@@ -1,3 +1,11 @@
+# Version 7.0.2
+
+Docker Image: quay.io/lifechurch/k8s-deploy-helper:7.0.2
+
+## Bugfixes
+
+* Herokuish build process couldn't build successfully unless at least one environment variable was set.
+
 # Version 7.0.1
 
 Docker Image: quay.io/lifechurch/k8s-deploy-helper:7.0.1
