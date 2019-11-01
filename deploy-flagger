@@ -1,0 +1,272 @@
+#!/bin/bash
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+  DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+done
+
+trap 'last_command=$current_command; current_command=$BASH_COMMAND' DEBUG
+# echo an error message before exiting
+trap 'echo "\"${last_command}\" command filed with exit code $?."' EXIT
+
+export DEPLOY_ROOT_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
+source "$DEPLOY_ROOT_DIR/src/common.bash"
+
+ensure_deploy_variables
+
+CI_ENVIRONMENT_HOSTNAME="${CI_ENVIRONMENT_URL}"
+CI_ENVIRONMENT_HOSTNAME="${CI_ENVIRONMENT_HOSTNAME/http:\/\//}"
+CI_ENVIRONMENT_HOSTNAME="${CI_ENVIRONMENT_HOSTNAME/https:\/\//}"
+
+export CI_ENVIRONMENT_HOSTNAME=$CI_ENVIRONMENT_HOSTNAME
+
+echo "Creating namespace if it doesn't exist"
+kubectl get namespace $KUBE_NAMESPACE || cat <<EOF | kubectl apply -f -
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: $KUBE_NAMESPACE
+EOF
+
+echo "Creating registry secret"
+kubectl create secret -n $KUBE_NAMESPACE \
+  docker-registry gitlab-registry \
+  --docker-server="$CI_REGISTRY" \
+  --docker-username="$CI_DEPLOY_USER" \
+  --docker-password="$CI_DEPLOY_PASSWORD" \
+  --docker-email="$GITLAB_USER_EMAIL" \
+  -o yaml --dry-run | kubectl apply -n $KUBE_NAMESPACE -f -
+echo "Registry secret created"
+
+echo "Getting your Kubernetes version for kubeval purposes"
+kube_version=$(kubectl version --short=true | grep Server | awk '{print $3}' | cut -d'-' -f1 | cut -d'v' -f2)
+
+echo
+export SECRET_KDH_DUMMY="useless"
+echo "Creating secrets from GitLab variables"
+secrets=$(get_secrets_for_creation)
+
+if [[ $secrets ]]; then
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Secret
+metadata:
+  name: $KUBE_NAMESPACE-secrets-$STAGE
+  namespace: $KUBE_NAMESPACE
+type: Opaque
+data:
+$secrets
+EOF
+fi
+echo "Finished creating secrets from GitLab variables"
+
+echo "Creating a file at /tmp/secrets.yaml template for {{SECRETS}} use"
+get_secrets_for_usage
+
+rollout=()
+mkdir -p /tmp/kubernetes
+
+echo "Setting defaults"
+set_defaults
+
+if [ ! -d "$CI_PROJECT_DIR/kubernetes" ]; then
+  echo "No Kubernetes manifests found, using default manifests for buildpacks"
+  mkdir -p $CI_PROJECT_DIR/kubernetes
+  cp -r /opt/kubernetes-deploy/manifests/web/* $CI_PROJECT_DIR/kubernetes/
+  IFS=$'\n'
+  if cat Procfile | grep -v "^web:" | grep -v "^#" | grep ":" > /dev/null; then
+    ALL_STAGES=$(cat Procfile | grep -v "^web:" | grep -v "^#" | grep ":" | cut -d':' -f1)
+    for line in $ALL_STAGES; do
+      mkdir -p $CI_PROJECT_DIR/kubernetes/production
+      cp /opt/kubernetes-deploy/manifests/other/deployment.yaml $CI_PROJECT_DIR/kubernetes/deployment-$line.yaml
+      cp /opt/kubernetes-deploy/manifests/other/autoscale.yaml $CI_PROJECT_DIR/kubernetes/production/autoscale-$line.yaml
+      sed -i -e "s/{{PREFIX}}/$line/g" $CI_PROJECT_DIR/kubernetes/deployment-$line.yaml
+      sed -i -e "s/{{PREFIX}}/$line/g" $CI_PROJECT_DIR/kubernetes/production/autoscale-$line.yaml
+      set_prefix_defaults $line
+    done
+  fi
+fi
+
+echo "Rendering your manifest templates."
+if [ -d "$CI_PROJECT_DIR/kubernetes" ]; then
+  # Move any stage specific manifests into the main yaml
+  echo "Moving stage specific yamls into job. Don't worry about any errors printed next"
+  cp $CI_PROJECT_DIR/kubernetes/$CI_JOB_STAGE/*.yaml $CI_PROJECT_DIR/kubernetes || true
+
+  # Render every template file using envsubst and look for {{SECRETS}} command
+  for filename in $CI_PROJECT_DIR/kubernetes/*.yaml; do
+    echo "Rendering $filename"
+    basefile=$(basename $filename)
+    if $(grep $'\t' $filename); then
+        echo "Found a tab in $filename. Tabs are not allowed in manifests. Quitting."
+        exit 1
+    fi
+    envsubst "`env | awk -F = '{printf \" \$%s\", \$1}'`" < $filename > /tmp/kubernetes/$basefile
+    while grep "{{SECRETS}}" /tmp/kubernetes/$basefile | grep -v "#"; do
+      line=$(grep -n -m 1 "{{SECRETS}}" /tmp/kubernetes/$basefile | grep -v "#")
+      lineno=$(echo $line | cut -d':' -f1)
+      spaces=$(sed "${lineno}!d" /tmp/kubernetes/$basefile | awk -F'[^ \t]' '{print length($1)}')
+      spaces=$((spaces-1))
+      # Delete line that had {{SECRETS}}
+      sed -i -e "${lineno}d" /tmp/kubernetes/$basefile
+      while IFS='' read -r secretline || [[ -n "$secretline" ]]; do
+        newline=$(printf "%*s%s" $spaces "" "$secretline")
+        sed -i "${lineno}i\ ${newline}" /tmp/kubernetes/$basefile
+        lineno=$((lineno+1))
+      done < "/tmp/secrets.yaml"
+    done
+    echo "Rendered manifest template to /tmp/kubernetes/$basefile"
+  done
+  echo "Done rendering templates."
+
+  echo "Evaluating rendered manifests."
+  # Dump the templated manifests to the log for easier debugging and run kubeval against each
+  for filename in /tmp/kubernetes/*.yaml; do
+    echo "Checking for GKE native manifests"
+    if grep -q 'apiVersion: cloud.google.com' $filename; then
+        echo "Found GKE K8s manifest - skipping - $filename"
+    else
+        echo
+        cat "$filename"
+        echo
+        if [ "x$KDH_SKIP_KUBEVAL" != "xtrue" ]; then
+          echo "Running kubeval against $filename"
+          kubeval -v $kube_version --ignore-missing-schemas $filename
+        fi
+    fi
+  done
+  echo "Evaluation finished."
+  echo
+  echo "Applying rendered templates"
+  # Start applying templates to Kubernetes
+  for filename in /tmp/kubernetes/*.yaml; do
+    # Grab the kind of manifest we're dealing with (ie, deployment, statefulset, etc..)
+    manifest_kind=$(yq read $filename kind)
+    # Grab the track label, which GitLab uses to tell if something is a canary or not
+    track=$(yq read $filename metadata.labels.track)
+    shopt -s nocasematch
+    # Build a list of application deployments we need to monitor and apply
+    if [[ "$manifest_kind" == "deployment" ]] || [[ "$manifest_kind" == "statefulset" ]] || [[ "$manifest_kind" == "daemonset" ]] || [[ "$manifest_kind" == "canary" ]]; then
+      # If we are in a canary deployment
+      if [[ "$ISCANARY" == "true" && "$track" == "stable" ]]; then
+        echo "We are in a canary deployment and this is a stable manifest. Beginning manifest transformation."
+        sed -i -e 's/track: stable/track: canary/g' $filename
+        appname=$(yq r $filename metadata.name)
+        sed -i -e "s/name: $appname/name: canary-$appname/g" $filename
+        echo "Done transforming manifest, going to cat it out so you can see what it's doing"
+        cat $filename
+      fi
+
+      if [[ "$ISCANARY" == "true" && "$track" != "stable" ]]; then
+        echo "We are in a canary deployment and this is not a stable manifest, so we aren't going to deploy it."
+        continue
+      fi
+
+      # Add deployment to rollout
+      manifest_name=$(yq read $filename metadata.name)
+      rollout+=("$manifest_kind/$manifest_name")
+    fi
+
+    # If we get here and are still in this loop, it means it should be safe to apply the manifest
+    echo "Applying manifest: $filename"
+    kubectl apply -f $filename
+  done
+
+  echo "Kubernetes manifests deployed"
+else
+  echo "No kubernetes directory was found. Exiting."
+  exit 1
+fi
+
+echo
+echo "Checking rollout status"
+for item in ${rollout[@]}; do
+  echo "Checking rollout status for $item"
+
+  if [[ $item =~ "canary/" ]]; then
+    # wait for Flagger to detect the change
+    ok=false
+    timeout=false
+    thefail=false
+
+    until ${ok}; do
+      kubectl get $item -n "$KUBE_NAMESPACE" | grep 'Progressing' && ok=true || ok=false
+      sleep 5
+    done
+
+    # wait for the canary analysis to finish
+    echo "Your release is getting canaried. Waiting for it to succeed."
+    kubectl wait $item -n "$KUBE_NAMESPACE" --for=condition=promoted --timeout=5m || timeout=true
+
+    if ${timeout}; then
+      echo "There was an issue promoting $item"
+      kubectl describe $item
+      exit 1
+    fi
+
+    # check if the deployment was successful
+    kubectl get $item -n "$KUBE_NAMESPACE" | grep Succeeded || thefail=true 
+
+    if ${thefail}; then
+      echo "There was an issue canarying $item"
+      kubectl describe $item
+      exit 1
+    fi
+  else
+    kubectl rollout status -n "$KUBE_NAMESPACE" -w "$item"
+  fi
+
+done
+
+get_deploy_events
+if [ "$NEWRELIC_API_KEY" ] && [ "$NEWRELIC_APP_ID" ]; then
+  echo "Sending deploy event to NewRelic..."
+  curl --silent -X POST "https://api.newrelic.com/v2/applications/$NEWRELIC_APP_ID/deployments.json" \
+     -H "X-Api-Key:$NEWRELIC_API_KEY" -i \
+     -H "Content-Type: application/json" \
+     -d \
+"{
+  \"deployment\": {
+    \"revision\": \"$CI_COMMIT_SHA\",
+    \"user\": \"$GITLAB_USER_LOGIN\"
+  }
+}" > /dev/null || true
+fi
+
+if [ "$SLACK_WEBHOOK_URL" ]; then
+  echo "Sending deploy event to Slack channel..."
+  curl --silent -X POST -H 'Content-type: application/json' \
+  -d \
+"{
+    \"text\": \"Kubernetes Deployment to $KUBE_NAMESPACE by $GITLAB_USER_LOGIN\",
+    \"attachments\": [
+        {\"color\": \"good\", \"text\": \"Successfully deployed to $REAL_JOB_STAGE\"}
+    ]
+}" $SLACK_WEBHOOK_URL > /dev/null || true
+fi
+
+if [ "$DATADOG_API_KEY" ]; then
+  echo "Sending deploy event to Datadog..."
+  URL="https://app.datadoghq.com/api/v1/events?api_key=$DATADOG_API_KEY"
+  if [ "$DATADOG_APP_KEY" ]; then
+    URL="$URL&app_key=$DATADOG_APP_KEY"
+  fi
+  if [[ -z "$DATADOG_TEXT" ]]; then
+      DATADOG_TEXT="KDH Deployment: $KUBE_NAMESPACE $REAL_JOB_STAGE by $GITLAB_USER_LOGIN Tag: $CI_REGISTRY_TAG"
+  fi
+  curl -X POST -H "Content-type: application/json" \
+  -d \
+"{
+    \"title\": \"KDH Deployment: $KUBE_NAMESPACE\",
+    \"text\": \"$DATADOG_TEXT\",
+    \"priority\": \"normal\",
+    \"tags\": [\"$DATADOG_TAGS\"],
+    \"alert_type\": \"info\",
+    \"source_type_name\": \"KDH\"
+}" "$URL" > /dev/null || true
+fi
+
+echo "Application is accessible at: ${CI_ENVIRONMENT_URL}"
+echo ""
