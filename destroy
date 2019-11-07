@@ -25,4 +25,4 @@ echo "Removing auto-generated secrets..."
 kubectl delete secret $KUBE_NAMESPACE-secrets-$STAGE -n "$KUBE_NAMESPACE" || true
 
 echo "Removing certificates..."
-kubectl delete certificate tls-$CI_ENVIRONMENT_HOSTNAME -n "$KUBE_NAMESPACE" || true 
+kubectl delete certificate -l "app=$CI_ENVIRONMENT_SLUG" -n "$KUBE_NAMESPACE" || true
