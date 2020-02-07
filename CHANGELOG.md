@@ -1,3 +1,15 @@
+# Version 7.1.0
+
+Docker Image: quay.io/lifechurch/k8s-deploy-helper:7.1.0
+
+## Feature
+
+* Adds a deploy-flagger command for Flagger canary deployments
+
+## Bugfixes
+
+* Update destroy command to include configmaps and certificates
+
 # Version 7.0.2
 
 Docker Image: quay.io/lifechurch/k8s-deploy-helper:7.0.2
