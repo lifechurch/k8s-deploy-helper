@@ -16,10 +16,13 @@ if [ "x$1" != "x" ]; then
   kubectl delete deploy,pod,rs,svc,ing,ds -l "$1" -n "$KUBE_NAMESPACE"
 else
   echo "Removing all deployment objects"
-  kubectl delete deploy,pod,rs,svc,ing,ds -l "app=$CI_ENVIRONMENT_SLUG" -n "$KUBE_NAMESPACE"
+  kubectl delete deploy,pod,rs,svc,ing,ds,configmap -l "app=$CI_ENVIRONMENT_SLUG" -n "$KUBE_NAMESPACE"
   echo "We are deleting on the environment=$CI_ENVIRONMENT_SLUG label for review apps with workers. You should be able to ignore errors below."
   kubectl delete deploy,pod,rs,svc,ing,ds -l "environment=$CI_ENVIRONMENT_SLUG" -n "$KUBE_NAMESPACE" || true
 fi
 
 echo "Removing auto-generated secrets..."
 kubectl delete secret $KUBE_NAMESPACE-secrets-$STAGE -n "$KUBE_NAMESPACE" || true
+
+echo "Removing certificates..."
+kubectl delete certificate -l "app=$CI_ENVIRONMENT_SLUG" -n "$KUBE_NAMESPACE" || true
