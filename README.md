@@ -250,7 +250,7 @@ env:
 
 # Deploy Events
 
-Currently NewRelic, Slack, and Datadog deploy events are supported.
+Currently NewRelic, Slack, Datadog, & Microsoft Teams deploy events are supported.
 
 In Gitlab for NewRelic, you'll need to add a secret variable with the NewRelic API key and App Ids
 for each stage you want a deployment event for. Like:
@@ -299,6 +299,25 @@ separated by commas.
 DATADOG_APP_KEY=xxx
 DATADOG_TAGS="deploys:api","foo:bar"
 DATADOG_TEXT=\n%%%\n### Success\n%%%
+```
+
+For Teams, you can simply set a Gitlab secret variable with a [Teams Incoming Webhook](https://docs.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/add-incoming-webhook#add-an-incoming-webhook-to-a-teams-channel) if you want notifications for every stage.
+
+```
+TEAMS_WEBHOOK=xxx
+```
+
+If you want notifications for specific stages use the following format.
+
+```
+TEAMS_{{STAGE}}_WEBHOOK=xxx
+```
+
+E.g.
+
+```
+TEAMS_STAGING_WEBHOOK=xxx
+TEAMS_PRODUCTION_WEBHOOK=xxx
 ```
 
 # Manifest-less Deploys

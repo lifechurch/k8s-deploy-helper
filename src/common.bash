@@ -318,4 +318,15 @@ get_deploy_events() {
         fi
     done
   fi
+
+  if env | grep -i -e '^TEAMS' > /dev/null; then
+    TEAMS=$(env | grep -i -e '^TEAMS')
+    for i in $TEAMS; do
+        if echo "$i" | grep -i -e "$CI_JOB_STAGE" | grep -i -e "WEBHOOK" > /dev/null; then
+            export TEAMS_WEBHOOK_URL=$(echo $i | cut -d'=' -f2)
+        elif echo "$i" | grep -i -e "^TEAMS_WEBHOOK" > /dev/null; then
+            export TEAMS_WEBHOOK_URL=$(echo $i | cut -d'=' -f2)
+        fi
+    done
+  fi
 }
