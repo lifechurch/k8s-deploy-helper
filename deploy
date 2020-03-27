@@ -235,5 +235,15 @@ if [ "$DATADOG_API_KEY" ]; then
 }" "$URL" > /dev/null || true
 fi
 
+if [ "$TEAMS_WEBHOOK_URL" ]; then
+  echo "Sending deploy event to Teams channel..."
+  curl --silent -X POST -H 'Content-type: application/json' \
+  -d \
+"{
+    \"text\": \"Kubernetes Deployment to $KUBE_NAMESPACE by $GITLAB_USER_LOGIN\n\n
+    Successfully deployed to $REAL_JOB_STAGE\",
+}" $TEAMS_WEBHOOK_URL > /dev/null || true
+fi
+
 echo "Application is accessible at: ${CI_ENVIRONMENT_URL}"
 echo ""
