@@ -14,7 +14,7 @@ export DEPLOY_ROOT_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 source "$DEPLOY_ROOT_DIR/src/common.bash"
 
-ensure_deploy_variables
+ensure_variables
 
 CI_ENVIRONMENT_HOSTNAME="${CI_ENVIRONMENT_URL}"
 CI_ENVIRONMENT_HOSTNAME="${CI_ENVIRONMENT_HOSTNAME/http:\/\//}"
