@@ -8,7 +8,7 @@ ENV HELM_VERSION="2.14.1" \
   PATH=/opt/kubernetes-deploy:$PATH
 
 # Install pre-req
-RUN apk add -U git openssl curl tar gzip bash ca-certificates git wget jq libintl coreutils \
+RUN apk add -U git openssh-client openssl curl tar gzip bash ca-certificates git wget jq libintl coreutils \
   && apk add --virtual build_deps gettext \
   && mv /usr/bin/envsubst /usr/local/bin/envsubst \
   && apk del build_deps
