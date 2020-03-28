@@ -234,7 +234,7 @@ set_buildargs() {
 build_env() {
   IFS=$'\n'
   echo "Removing .env file"
-  rm $CI_PROJECT_DIR/.env &> /dev/null || true
+  rm $KDH_WORKING_DIR/.env &> /dev/null || true
   if env | grep -i -e '^BUILDARG_' > /dev/null; then
     ALL_VARIABLES=$(env | grep -i -e '^BUILDARG_')
     for i in $ALL_VARIABLES; do
@@ -242,7 +242,7 @@ build_env() {
       stripped=$(echo $i | cut -d'_' -f2-)
       key=$(echo $stripped | cut -d'=' -f1)
       value=$(echo -n "${!fullkey}")
-      echo "$key=$value" >> $CI_PROJECT_DIR/.env
+      echo "$key=$value" >> $KDH_WORKING_DIR/.env
     done
   fi
 }
@@ -268,9 +268,9 @@ get_secrets_for_creation() {
     done
   fi
 
-  if env | grep -i -e "^$CI_JOB_STAGE"_ > /dev/null; then
+  if env | grep -i -e "^$KDH_STAGE"_ > /dev/null; then
     IFS=$'\n'
-    STAGE_SECRETS=$(env | grep -i -e "^$CI_JOB_STAGE")
+    STAGE_SECRETS=$(env | grep -i -e "^$KDH_STAGE")
     for i in $STAGE_SECRETS; do
       fullkey=$(echo $i | cut -d'=' -f1)
       stripped=$(echo $i | cut -d'_' -f2-)
@@ -293,14 +293,14 @@ get_secrets_for_usage() {
       echo "- name: $key" >> /tmp/secrets.yaml
       echo "  valueFrom:" >> /tmp/secrets.yaml
       echo "    secretKeyRef:" >> /tmp/secrets.yaml
-      echo "      name: $KUBE_NAMESPACE-secrets-$STAGE" >> /tmp/secrets.yaml
+      echo "      name: $KDH_KUBE_NAMESPACE-secrets-$STAGE" >> /tmp/secrets.yaml
       echo "      key: $key" >> /tmp/secrets.yaml
     done
   fi
 
-  if env | grep -i -e "^$CI_JOB_STAGE"_ > /dev/null; then
+  if env | grep -i -e "^$KDH_STAGE"_ > /dev/null; then
     IFS=$'\n'
-    STAGE_SECRETS=$(env | grep -i -e "^$CI_JOB_STAGE")
+    STAGE_SECRETS=$(env | grep -i -e "^$KDH_STAGE")
     for i in $STAGE_SECRETS; do
       fullkey=$(echo $i | cut -d'=' -f1)
       stripped=$(echo $i | cut -d'_' -f2-)
@@ -309,7 +309,7 @@ get_secrets_for_usage() {
       echo "- name: $key" >> /tmp/secrets.yaml
       echo "  valueFrom:" >> /tmp/secrets.yaml
       echo "    secretKeyRef:" >> /tmp/secrets.yaml
-      echo "      name: $KUBE_NAMESPACE-secrets-$STAGE" >> /tmp/secrets.yaml
+      echo "      name: $KDH_KUBE_NAMESPACE-secrets-$STAGE" >> /tmp/secrets.yaml
       echo "      key: $key" >> /tmp/secrets.yaml
     done
   fi
@@ -322,7 +322,7 @@ get_deploy_events() {
         if echo "$i" | grep -i -e "API_KEY" > /dev/null; then
             export NEWRELIC_API_KEY=$(echo $i | cut -d'=' -f2)
         fi
-        if echo "$i" | grep -i -e "$CI_JOB_STAGE" | grep -i -e "APP_ID" > /dev/null; then
+        if echo "$i" | grep -i -e "$KDH_STAGE" | grep -i -e "APP_ID" > /dev/null; then
             export NEWRELIC_APP_ID=$(echo $i | cut -d'=' -f2)
         fi
     done
@@ -331,7 +331,7 @@ get_deploy_events() {
   if env | grep -i -e '^SLACK' > /dev/null; then
     SLACK=$(env | grep -i -e '^SLACK')
     for i in $SLACK; do
-        if echo "$i" | grep -i -e "$CI_JOB_STAGE" | grep -i -e "WEBHOOK" > /dev/null; then
+        if echo "$i" | grep -i -e "$KDH_STAGE" | grep -i -e "WEBHOOK" > /dev/null; then
             export SLACK_WEBHOOK_URL=$(echo $i | cut -d'=' -f2)
         elif echo "$i" | grep -i -e "^SLACK_WEBHOOK" > /dev/null; then
             export SLACK_WEBHOOK_URL=$(echo $i | cut -d'=' -f2)
@@ -342,7 +342,7 @@ get_deploy_events() {
   if env | grep -i -e '^TEAMS' > /dev/null; then
     TEAMS=$(env | grep -i -e '^TEAMS')
     for i in $TEAMS; do
-        if echo "$i" | grep -i -e "$CI_JOB_STAGE" | grep -i -e "WEBHOOK" > /dev/null; then
+        if echo "$i" | grep -i -e "$KDH_STAGE" | grep -i -e "WEBHOOK" > /dev/null; then
             export TEAMS_WEBHOOK_URL=$(echo $i | cut -d'=' -f2)
         elif echo "$i" | grep -i -e "^TEAMS_WEBHOOK" > /dev/null; then
             export TEAMS_WEBHOOK_URL=$(echo $i | cut -d'=' -f2)
@@ -353,7 +353,7 @@ get_deploy_events() {
   if env | grep -i -e '^INSTANA' > /dev/null; then
     INSTANA=$(env | grep -i -e '^INSTANA')
     for i in $INSTANA; do
-        if echo "$i" | grep -i -e "$CI_JOB_STAGE" | grep -i -e "API_TOKEN" > /dev/null; then
+        if echo "$i" | grep -i -e "$KDH_STAGE" | grep -i -e "API_TOKEN" > /dev/null; then
             export INSTANA_API_TOKEN=$(echo $i | cut -d'=' -f2)
         elif echo "$i" | grep -i -e "^INSTANA_API_TOKEN" > /dev/null; then
             export INSTANA_API_TOKEN=$(echo $i | cut -d'=' -f2)
