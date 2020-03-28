@@ -11,6 +11,8 @@ export DEPLOY_ROOT_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 source "$DEPLOY_ROOT_DIR/src/common.bash"
 
+ensure_variables
+
 if [[ -n "$KDH_REGISTRY_USER" ]]; then
 	echo "Logging to GitLab Container Registry with CI credentials..."
 	docker login -u "$KDH_REGISTRY_USER" -p "$KDH_REGISTRY_PASSWORD" "$KDH_REGISTRY"
