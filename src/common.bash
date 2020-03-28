@@ -21,15 +21,17 @@ ensure_variables() {
       exit 1
     fi
 
-    if [[ -z "KDH_REGISTRY" ]]; then
-      echo "ERROR: Missing KDH_REGISTRY. Make sure to configure this as an environment variable"
+    if [[ -z "KDH_REGISTRY_PREFIX" ]]; then
+      echo "ERROR: Missing KDH_REGISTRY_PREFIX. Make sure to configure this as an environment variable"
       exit 1
     fi
+
     export KDH_REPO_NAME=$CIRCLE_PROJECT_REPONAME
     export KDH_SHA=$CIRCLE_SHA1
     export KDH_BRANCH=$CIRCLE_BRANCH
     export KDH_BUILD_NUMBER=$CIRCLE_BUILD_NUM
-    export KDH_REGISTRY_IMAGE="${KDH_REGISTRY}/${KDH_REPO}"
+    export KDH_REGISTRY=$(echo "$KDH_REGISTRY_PREFIX" | cut -d'/' -f0)
+    export KDH_REGISTRY_IMAGE="${KDH_REGISTRY_PREFIX}/${KDH_REPO_NAME}"
     export KDH_CONTAINER_NAME="ci_job_build_$KDH_BUILD_NUMBER"
   elif [[ -n "$GITLAB_CI" ]]; then
     if [[ -z "$KUBE_URL" ]]; then
