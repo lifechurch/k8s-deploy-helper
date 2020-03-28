@@ -26,6 +26,11 @@ ensure_variables() {
       exit 1
     fi
 
+    if [[ -z "$KDH_KUBE_NAMESPACE" ]]; then
+      echo "ERROR: Missing KDH_REGISTRY_PREFIX. Make sure to configure this as an environment variable"
+      exit 1
+    fi
+
     export KDH_REPO_NAME=$CIRCLE_PROJECT_REPONAME
     export KDH_SHA=$CIRCLE_SHA1
     export KDH_BRANCH=$CIRCLE_BRANCH
@@ -33,6 +38,9 @@ ensure_variables() {
     export KDH_REGISTRY=$(echo "$KDH_REGISTRY_PREFIX" | cut -d'/' -f1)
     export KDH_REGISTRY_IMAGE="${KDH_REGISTRY_PREFIX}/${KDH_REPO_NAME}"
     export KDH_CONTAINER_NAME="ci_job_build_$KDH_BUILD_NUMBER"
+    export KDH_STAGE=$CIRCLE_JOB
+    export KDH_WORKING_DIR=$CIRCLE_WORKING_DIRECTORY
+
   elif [[ -n "$GITLAB_CI" ]]; then
     if [[ -z "$KUBE_URL" ]]; then
       echo "ERROR: Missing KUBE_URL. Make sure to configure the Kubernetes Cluster in Operations->Kubernetes"

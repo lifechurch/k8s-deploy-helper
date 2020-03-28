@@ -22,22 +22,28 @@ CI_ENVIRONMENT_HOSTNAME="${CI_ENVIRONMENT_HOSTNAME/https:\/\//}"
 
 export CI_ENVIRONMENT_HOSTNAME=$CI_ENVIRONMENT_HOSTNAME
 
+if [[ -n "$KDH_KUBECONFIG" ]]; then
+  echo "Found KDH_KUBECONFIG variable, putting kubeconfig in place"
+  mkdir -p ~/.kube || true
+  echo -n "$KDH_KUBECONFIG" | base64 -d > ~/.kube/config
+fi
+
 echo "Creating namespace if it doesn't exist"
-kubectl get namespace $KUBE_NAMESPACE || cat <<EOF | kubectl apply -f -
+kubectl get namespace $KDH_KUBE_NAMESPACE || cat <<EOF | kubectl apply -f -
 kind: Namespace
 apiVersion: v1
 metadata:
-  name: $KUBE_NAMESPACE
+  name: $KDH_KUBE_NAMESPACE
 EOF
 
 echo "Creating registry secret"
-kubectl create secret -n $KUBE_NAMESPACE \
+kubectl create secret -n $KDH_KUBE_NAMESPACE \
   docker-registry gitlab-registry \
-  --docker-server="$CI_REGISTRY" \
-  --docker-username="$CI_DEPLOY_USER" \
-  --docker-password="$CI_DEPLOY_PASSWORD" \
-  --docker-email="$GITLAB_USER_EMAIL" \
-  -o yaml --dry-run | kubectl apply -n $KUBE_NAMESPACE -f -
+  --docker-server="$KDH_REGISTRY" \
+  --docker-username="$KDH_REGISTRY_USER" \
+  --docker-password="$KDH_REGISTRY_PASSWORD" \
+  --docker-email="kdh@kdh.com" \
+  -o yaml --dry-run | kubectl apply -n $KDH_KUBE_NAMESPACE -f -
 echo "Registry secret created"
 
 echo "Getting your Kubernetes version for kubeval purposes"
@@ -53,8 +59,8 @@ cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: Secret
 metadata:
-  name: $KUBE_NAMESPACE-secrets-$STAGE
-  namespace: $KUBE_NAMESPACE
+  name: $KDH_KUBE_NAMESPACE-secrets-$KDH_STAGE
+  namespace: $KDH_KUBE_NAMESPACE
 type: Opaque
 data:
 $secrets
@@ -71,32 +77,32 @@ mkdir -p /tmp/kubernetes
 echo "Setting defaults"
 set_defaults
 
-if [ ! -d "$CI_PROJECT_DIR/kubernetes" ]; then
+if [ ! -d "$KDH_WORKING_DIR/kubernetes" ]; then
   echo "No Kubernetes manifests found, using default manifests for buildpacks"
-  mkdir -p $CI_PROJECT_DIR/kubernetes
-  cp -r /opt/kubernetes-deploy/manifests/web/* $CI_PROJECT_DIR/kubernetes/
+  mkdir -p $KDH_WORKING_DIR/kubernetes
+  cp -r /opt/kubernetes-deploy/manifests/web/* $KDH_WORKING_DIR/kubernetes/
   IFS=$'\n'
   if cat Procfile | grep -v "^web:" | grep -v "^#" | grep ":" > /dev/null; then
     ALL_STAGES=$(cat Procfile | grep -v "^web:" | grep -v "^#" | grep ":" | cut -d':' -f1)
     for line in $ALL_STAGES; do
-      mkdir -p $CI_PROJECT_DIR/kubernetes/production
-      cp /opt/kubernetes-deploy/manifests/other/deployment.yaml $CI_PROJECT_DIR/kubernetes/deployment-$line.yaml
-      cp /opt/kubernetes-deploy/manifests/other/autoscale.yaml $CI_PROJECT_DIR/kubernetes/production/autoscale-$line.yaml
-      sed -i -e "s/{{PREFIX}}/$line/g" $CI_PROJECT_DIR/kubernetes/deployment-$line.yaml
-      sed -i -e "s/{{PREFIX}}/$line/g" $CI_PROJECT_DIR/kubernetes/production/autoscale-$line.yaml
+      mkdir -p $KDH_WORKING_DIR/kubernetes/production
+      cp /opt/kubernetes-deploy/manifests/other/deployment.yaml $KDH_WORKING_DIR/kubernetes/deployment-$line.yaml
+      cp /opt/kubernetes-deploy/manifests/other/autoscale.yaml $KDH_WORKING_DIR/kubernetes/production/autoscale-$line.yaml
+      sed -i -e "s/{{PREFIX}}/$line/g" $KDH_WORKING_DIR/kubernetes/deployment-$line.yaml
+      sed -i -e "s/{{PREFIX}}/$line/g" $KDH_WORKING_DIR/kubernetes/production/autoscale-$line.yaml
       set_prefix_defaults $line
     done
   fi
 fi
 
 echo "Rendering your manifest templates."
-if [ -d "$CI_PROJECT_DIR/kubernetes" ]; then
+if [ -d "$KDH_WORKING_DIR/kubernetes" ]; then
   # Move any stage specific manifests into the main yaml
   echo "Moving stage specific yamls into job. Don't worry about any errors printed next"
-  cp $CI_PROJECT_DIR/kubernetes/$CI_JOB_STAGE/*.yaml $CI_PROJECT_DIR/kubernetes || true
+  cp $KDH_WORKING_DIR/kubernetes/$KDH_STAGE/*.yaml $KDH_WORKING_DIR/kubernetes || true
 
   # Render every template file using envsubst and look for {{SECRETS}} command
-  for filename in $CI_PROJECT_DIR/kubernetes/*.yaml; do
+  for filename in $KDH_WORKING_DIR/kubernetes/*.yaml; do
     echo "Rendering $filename"
     basefile=$(basename $filename)
     if $(grep $'\t' $filename); then
@@ -144,26 +150,9 @@ if [ -d "$CI_PROJECT_DIR/kubernetes" ]; then
   for filename in /tmp/kubernetes/*.yaml; do
     # Grab the kind of manifest we're dealing with (ie, deployment, statefulset, etc..)
     manifest_kind=$(yq read $filename kind)
-    # Grab the track label, which GitLab uses to tell if something is a canary or not
-    track=$(yq read $filename metadata.labels.track)
-    shopt -s nocasematch
     # Build a list of application deployments we need to monitor and apply
+    shopt -s nocasematch
     if [[ "$manifest_kind" == "deployment" ]] || [[ "$manifest_kind" == "statefulset" ]] || [[ "$manifest_kind" == "daemonset" ]]; then
-      # If we are in a canary deploymentt
-      if [[ "$ISCANARY" == "true" && "$track" == "stable" ]]; then
-        echo "We are in a canary deployment and this is a stable manifest. Beginning manifest transformation."
-        sed -i -e 's/track: stable/track: canary/g' $filename
-        appname=$(yq r $filename metadata.name)
-        sed -i -e "s/name: $appname/name: canary-$appname/g" $filename
-        echo "Done transforming manifest, going to cat it out so you can see what it's doing"
-        cat $filename
-      fi
-
-      if [[ "$ISCANARY" == "true" && "$track" != "stable" ]]; then
-        echo "We are in a canary deployment and this is not a stable manifest, so we aren't going to deploy it."
-        continue
-      fi
-
       # Add deployment to rollout
       manifest_name=$(yq read $filename metadata.name)
       rollout+=("$manifest_kind/$manifest_name")
@@ -184,7 +173,7 @@ echo
 echo "Checking rollout status"
 for item in ${rollout[@]}; do
   echo "Checking rollout status for $item"
-  kubectl rollout status -n "$KUBE_NAMESPACE" -w "$item"
+  kubectl rollout status -n "$KDH_KUBE_NAMESPACE" -w "$item"
 done
 
 get_deploy_events
@@ -207,7 +196,7 @@ if [ "$SLACK_WEBHOOK_URL" ]; then
   curl --silent -X POST -H 'Content-type: application/json' \
   -d \
 "{
-    \"text\": \"Kubernetes Deployment to $KUBE_NAMESPACE by $GITLAB_USER_LOGIN\",
+    \"text\": \"Kubernetes Deployment to $KDH_KUBE_NAMESPACE by $GITLAB_USER_LOGIN\",
     \"attachments\": [
         {\"color\": \"good\", \"text\": \"Successfully deployed to $REAL_JOB_STAGE\"}
     ]
@@ -221,12 +210,12 @@ if [ "$DATADOG_API_KEY" ]; then
     URL="$URL&app_key=$DATADOG_APP_KEY"
   fi
   if [[ -z "$DATADOG_TEXT" ]]; then
-      DATADOG_TEXT="KDH Deployment: $KUBE_NAMESPACE $REAL_JOB_STAGE by $GITLAB_USER_LOGIN Tag: $KDH_SHA"
+      DATADOG_TEXT="KDH Deployment: $KDH_KUBE_NAMESPACE $REAL_JOB_STAGE by $GITLAB_USER_LOGIN Tag: $KDH_SHA"
   fi
   curl -X POST -H "Content-type: application/json" \
   -d \
 "{
-    \"title\": \"KDH Deployment: $KUBE_NAMESPACE\",
+    \"title\": \"KDH Deployment: $KDH_KUBE_NAMESPACE\",
     \"text\": \"$DATADOG_TEXT\",
     \"priority\": \"normal\",
     \"tags\": [\"$DATADOG_TAGS\"],
@@ -240,7 +229,7 @@ if [ "$TEAMS_WEBHOOK_URL" ]; then
   curl --silent -X POST -H 'Content-type: application/json' \
   -d \
 "{
-    \"text\": \"Kubernetes Deployment to $KUBE_NAMESPACE by $GITLAB_USER_LOGIN\n\n
+    \"text\": \"Kubernetes Deployment to $KDH_KUBE_NAMESPACE by $GITLAB_USER_LOGIN\n\n
     Successfully deployed to $REAL_JOB_STAGE\",
 }" $TEAMS_WEBHOOK_URL > /dev/null || true
 fi
@@ -255,7 +244,7 @@ if [ "$INSTANA_API_TOKEN" ] && [ "$INSTANA_BASE_URL" ]; then
   -H "Authorization: apiToken $INSTANA_API_TOKEN" \
   -d \
 "{
-	\"name\": \"$KUBE_NAMESPACE env:$REAL_JOB_STAGE\",
+	\"name\": \"$KDH_KUBE_NAMESPACE env:$REAL_JOB_STAGE\",
 	\"start\": $start_time
 }" "$URL" > /dev/null || true
 fi
