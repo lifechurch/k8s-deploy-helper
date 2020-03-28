@@ -39,7 +39,7 @@ ensure_variables() {
     export KDH_REGISTRY_IMAGE="${KDH_REGISTRY_PREFIX}/${KDH_REPO_NAME}"
     export KDH_CONTAINER_NAME="ci_job_build_$KDH_BUILD_NUMBER"
     export KDH_STAGE=$CIRCLE_JOB
-    export KDH_WORKING_DIR=$CIRCLE_WORKING_DIRECTORY
+    export KDH_WORKING_DIR="/root/project"
 
   elif [[ -n "$GITLAB_CI" ]]; then
     if [[ -z "$KUBE_URL" ]]; then
