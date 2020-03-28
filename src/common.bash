@@ -11,17 +11,17 @@ fi
 
 ensure_variables() {
   if [[ -n "$CIRCLECI" ]]; then
-    if [[ -z "KDH_REGISTRY_USER" ]]; then
+    if [[ -z "$KDH_REGISTRY_USER" ]]; then
       echo "ERROR: Missing KDH_REGISTRY_USER. Make sure to configure this as an environment variable"
       exit 1
     fi
 
-    if [[ -z "KDH_REGISTRY_PASSWORD" ]]; then
+    if [[ -z "$KDH_REGISTRY_PASSWORD" ]]; then
       echo "ERROR: Missing KDH_REGISTRY_PASSWORD. Make sure to configure this as an environment variable"
       exit 1
     fi
 
-    if [[ -z "KDH_REGISTRY_PREFIX" ]]; then
+    if [[ -z "$KDH_REGISTRY_PREFIX" ]]; then
       echo "ERROR: Missing KDH_REGISTRY_PREFIX. Make sure to configure this as an environment variable"
       exit 1
     fi
@@ -30,7 +30,7 @@ ensure_variables() {
     export KDH_SHA=$CIRCLE_SHA1
     export KDH_BRANCH=$CIRCLE_BRANCH
     export KDH_BUILD_NUMBER=$CIRCLE_BUILD_NUM
-    export KDH_REGISTRY=$(echo "$KDH_REGISTRY_PREFIX" | cut -d'/' -f0)
+    export KDH_REGISTRY=$(echo "$KDH_REGISTRY_PREFIX" | cut -d'/' -f1)
     export KDH_REGISTRY_IMAGE="${KDH_REGISTRY_PREFIX}/${KDH_REPO_NAME}"
     export KDH_CONTAINER_NAME="ci_job_build_$KDH_BUILD_NUMBER"
   elif [[ -n "$GITLAB_CI" ]]; then
