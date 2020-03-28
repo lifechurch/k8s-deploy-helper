@@ -26,10 +26,9 @@ buildargs_from
 # Set buildargs
 set_buildargs
 
-if [[ -n "$KDH_REGISTRY_USER" ]]; then
-	echo "Logging to Container Registry with CI credentials..."
-	docker login -u "$KDH_REGISTRY_USER" -p "$KDH_REGISTRY_PASSWORD" "$KDH_REGISTRY"
-	echo ""
+echo "Logging to Container Registry with CI credentials..."
+docker login -u "$KDH_REGISTRY_USER" -p "$KDH_REGISTRY_PASSWORD" "$KDH_REGISTRY"
+echo ""
 fi
 
 echo "Building application..."
