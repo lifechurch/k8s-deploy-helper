@@ -245,5 +245,20 @@ if [ "$TEAMS_WEBHOOK_URL" ]; then
 }" $TEAMS_WEBHOOK_URL > /dev/null || true
 fi
 
+if [ "$INSTANA_API_TOKEN" ] && [ "$INSTANA_BASE_URL" ]; then
+  echo "Sending deploy event to Instana..."
+  URL="$INSTANA_BASE_URL/api/releases"
+  # this gets the epoch in milliseconds (does not work on macOS)
+  start_time=$(date +%s%3N)
+  curl --silent -X POST \
+  -H 'Content-type: application/json' \
+  -H "Authorization: apiToken $INSTANA_API_TOKEN" \
+  -d \
+"{
+	\"name\": \"$KUBE_NAMESPACE env:$REAL_JOB_STAGE\",
+	\"start\": $start_time
+}" "$URL" > /dev/null || true
+fi
+
 echo "Application is accessible at: ${CI_ENVIRONMENT_URL}"
 echo ""

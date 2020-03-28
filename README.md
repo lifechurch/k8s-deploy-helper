@@ -250,7 +250,7 @@ env:
 
 # Deploy Events
 
-Currently NewRelic, Slack, Datadog, & Microsoft Teams deploy events are supported.
+Currently NewRelic, Slack, Datadog, Instana, & Microsoft Teams deploy events are supported.
 
 In Gitlab for NewRelic, you'll need to add a secret variable with the NewRelic API key and App Ids
 for each stage you want a deployment event for. Like:
@@ -319,6 +319,33 @@ E.g.
 TEAMS_STAGING_WEBHOOK=xxx
 TEAMS_PRODUCTION_WEBHOOK=xxx
 ```
+
+For Instana, you *must* set your Instana API Token & Instana Base URL with:
+
+```
+INSTANA_API_TOKEN=xxx
+INSTANA_BASE_URL=https://<dashboard-url>
+```
+
+If you want notifications for specific stages use the following format.
+
+```
+INSTANA_{{STAGE}}_API_TOKEN
+```
+
+E.g.
+
+```
+INSTANA_STAGING_API_TOKEN=xxx
+INSTANA_PRODUCTION_API_TOKEN=xxx
+```
+
+Per Instana's docs it's important to note:
+
+    The used API Token requires the permission “Configuration of releases”.
+    A release has no scope and is therefore globally applied to the whole monitored system.
+
+Based on that last note you can set these variables at a group level and not have to manage them at the project level.
 
 # Manifest-less Deploys
 Starting in 3.1.0, we added an option for manifest-less deploys to help us migrate away from Deis Workflow. In order for this to work, we had to make some very opinionated decisions regarding our manifests. These may not work for your organization. If this is the case, we encourage you to fork our project and make your own default manifests. They can be found in the manifests directory.
