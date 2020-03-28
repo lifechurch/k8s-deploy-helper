@@ -329,4 +329,15 @@ get_deploy_events() {
         fi
     done
   fi
+
+  if env | grep -i -e '^INSTANA' > /dev/null; then
+    INSTANA=$(env | grep -i -e '^INSTANA')
+    for i in $INSTANA; do
+        if echo "$i" | grep -i -e "$CI_JOB_STAGE" | grep -i -e "API_TOKEN" > /dev/null; then
+            export INSTANA_API_TOKEN=$(echo $i | cut -d'=' -f2)
+        elif echo "$i" | grep -i -e "^INSTANA_API_TOKEN" > /dev/null; then
+            export INSTANA_API_TOKEN=$(echo $i | cut -d'=' -f2)
+        fi
+    done
+  fi
 }
