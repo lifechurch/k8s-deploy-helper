@@ -2,8 +2,6 @@ set -eo pipefail
 
 [[ "$TRACE" ]] && set -x
 
-export CI_CONTAINER_NAME="ci_job_build_$CI_JOB_ID"
-export CI_REGISTRY_TAG="$CI_COMMIT_SHA"
 
 if [[ "$CI_JOB_STAGE" == "review" ]]; then
   export STAGE="$CI_ENVIRONMENT_SLUG"
@@ -11,18 +9,29 @@ else
   export STAGE="$CI_JOB_STAGE"
 fi
 
-if [[ "$CI_JOB_STAGE" == "canary" ]]; then
-  export STAGE="production"
-  export CI_JOB_STAGE="production"
-  export ISCANARY="true"
-  export REAL_JOB_STAGE="canary"
-  echo "We are in a canary deploy, behaving like production but looking for track:"
-else
-  export ISCANARY="false"
-  export REAL_JOB_STAGE=$CI_JOB_STAGE
-fi
+ensure_variables() {
+  if [[ -n "$CIRCLECI" ]]; then
+    if [[ -z "KDH_REGISTRY_USER" ]]; then
+      echo "ERROR: Missing KDH_REGISTRY_USER. Make sure to configure this as an environment variable"
+      exit 1
+    fi
 
-ensure_deploy_variables() {
+    if [[ -z "KDH_REGISTRY_PASSWORD" ]]; then
+      echo "ERROR: Missing KDH_REGISTRY_PASSWORD. Make sure to configure this as an environment variable"
+      exit 1
+    fi
+
+    if [[ -z "KDH_REGISTRY" ]]; then
+      echo "ERROR: Missing KDH_REGISTRY. Make sure to configure this as an environment variable"
+      exit 1
+    fi
+    export KDH_REPO_NAME=$CIRCLE_PROJECT_REPONAME
+    export KDH_SHA=$CIRCLE_SHA1
+    export KDH_BRANCH=$CIRCLE_BRANCH
+    export KDH_BUILD_NUMBER=$CIRCLE_BUILD_NUM
+    export KDH_REGISTRY_IMAGE="${KDH_REGISTRY}/${KDH_REPO}"
+    export KDH_CONTAINER_NAME="ci_job_build_$KDH_BUILD_NUMBER"
+  elif [[ -n "$GITLAB_CI" ]]; then
     if [[ -z "$KUBE_URL" ]]; then
       echo "ERROR: Missing KUBE_URL. Make sure to configure the Kubernetes Cluster in Operations->Kubernetes"
       exit 1
@@ -51,6 +60,7 @@ ensure_deploy_variables() {
       echo "ERROR: Missing CI_DEPLOY_PASSWORD. Create a deploy token at Settings->Repository->Deploy Tokens and make one named gitlab-deploy-token with read_registry access."
       exit 1
     fi
+  fi
 }
 
 ping_kube() {

@@ -221,7 +221,7 @@ if [ "$DATADOG_API_KEY" ]; then
     URL="$URL&app_key=$DATADOG_APP_KEY"
   fi
   if [[ -z "$DATADOG_TEXT" ]]; then
-      DATADOG_TEXT="KDH Deployment: $KUBE_NAMESPACE $REAL_JOB_STAGE by $GITLAB_USER_LOGIN Tag: $CI_REGISTRY_TAG"
+      DATADOG_TEXT="KDH Deployment: $KUBE_NAMESPACE $REAL_JOB_STAGE by $GITLAB_USER_LOGIN Tag: $KDH_SHA"
   fi
   curl -X POST -H "Content-type: application/json" \
   -d \

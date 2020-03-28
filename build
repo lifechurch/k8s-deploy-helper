@@ -17,15 +17,18 @@ else
   export DOCKERFILE=Dockerfile
 fi
 
+# Make sure variables are set correctly
+ensure_variables
+
 # If BUILDARGS_FROM exists, change SECRET/STAGE_ prefixes to BUILDARG_ for later consumption
 buildargs_from
 
 # Set buildargs
 set_buildargs
 
-if [[ -n "$CI_REGISTRY_USER" ]]; then
-	echo "Logging to GitLab Container Registry with CI credentials..."
-	docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+if [[ -n "$KDH_REGISTRY_USER" ]]; then
+	echo "Logging to Container Registry with CI credentials..."
+	docker login -u "$KDH_REGISTRY_USER" -p "$KDH_REGISTRY_PASSWORD" "$KDH_REGISTRY"
 	echo ""
 fi
 
@@ -38,14 +41,14 @@ if [ "x$1" != "x" ]; then
 	export SHORT=$(echo "$1" | cut -d'-' -f2-)
 	if [ "x$KDH_SKIP_LATEST" == "xtrue" ]; then
 		echo "KDH_SKIP_LATEST is true, not building from latest"
-		dockerbuild="docker build --pull -t \"$CI_REGISTRY_IMAGE:$SHORT-$CI_REGISTRY_TAG\" $buildargs -f $1 ."
+		dockerbuild="docker build --pull -t \"$KDH_REGISTRY_IMAGE:$SHORT-$KDH_SHA\" $buildargs -f $1 ."
 		eval $dockerbuild
 	else
-		dockerbuild="docker build --pull --cache-from \"$CI_REGISTRY_IMAGE:$SHORT-latest\" -t \"$CI_REGISTRY_IMAGE:$SHORT-$CI_REGISTRY_TAG\" $buildargs -f $1 ."
+		dockerbuild="docker build --pull --cache-from \"$KDH_REGISTRY_IMAGE:$SHORT-latest\" -t \"$KDH_REGISTRY_IMAGE:$SHORT-$KDH_SHA\" $buildargs -f $1 ."
 		eval $dockerbuild
 	fi
 	echo "Pushing to GitLab Container Registry..."
-	docker push "$CI_REGISTRY_IMAGE:$SHORT-$CI_REGISTRY_TAG"
+	docker push "$KDH_REGISTRY_IMAGE:$SHORT-$KDH_SHA"
 
 elif [[ -f Dockerfile ]]; then
 	echo "Building Dockerfile-based application..."
@@ -53,30 +56,30 @@ elif [[ -f Dockerfile ]]; then
     insert_args
 	if [ "x$KDH_SKIP_LATEST" == "xtrue" ]; then
 		echo "KDH_SKIP_LATEST is true, not building from latest"
-		dockerbuild="docker build --pull -t \"$CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG\" $buildargs ."
+		dockerbuild="docker build --pull -t \"$KDH_REGISTRY_IMAGE:$KDH_SHA\" $buildargs ."
 		eval $dockerbuild
 	else
-		docker pull $CI_REGISTRY_IMAGE:latest || true
-		dockerbuild="docker build --pull --cache-from \"$CI_REGISTRY_IMAGE:latest\" -t \"$CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG\" $buildargs ."
+		docker pull $KDH_REGISTRY_IMAGE:latest || true
+		dockerbuild="docker build --pull --cache-from \"$KDH_REGISTRY_IMAGE:latest\" -t \"$KDH_REGISTRY_IMAGE:$KDH_SHA\" $buildargs ."
 		eval $dockerbuild
 	fi
 	echo "Pushing to GitLab Container Registry..."
-	docker push "$CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG"
+	docker push "$KDH_REGISTRY_IMAGE:$KDH_SHA"
 else
     export DOCKER_HOST='tcp://docker:2375'
 	echo "No Dockerfile at root of repo. Using herokuish build packs."
     echo "Building env file"
     build_env
     echo "Starting herokuish"
-    dockerrun="docker run -i --name=\"$CI_CONTAINER_NAME\" -v \"$(pwd):/tmp/app:ro\" gliderlabs/herokuish /bin/bash -c \"/bin/herokuish buildpack build && (rm /app/.env || true)\""
+    dockerrun="docker run -i --name=\"$KDH_CONTAINER_NAME\" -v \"$(pwd):/tmp/app:ro\" gliderlabs/herokuish /bin/bash -c \"/bin/herokuish buildpack build && (rm /app/.env || true)\""
 	eval $dockerrun
-    docker commit "$CI_CONTAINER_NAME" "$CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG"
-	docker rm "$CI_CONTAINER_NAME"
-	echo "Configuring $CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG docker image..."
-    docker create --expose 5000 --env PORT=5000 --name="$CI_CONTAINER_NAME" "$CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG" /bin/herokuish procfile start web
-    docker commit "$CI_CONTAINER_NAME" "$CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG"
-    docker rm "$CI_CONTAINER_NAME" >/dev/null
+    docker commit "$KDH_CONTAINER_NAME" "$KDH_REGISTRY_IMAGE:$KDH_SHA"
+	docker rm "$KDH_CONTAINER_NAME"
+	echo "Configuring $KDH_REGISTRY_IMAGE:$KDH_SHA docker image..."
+    docker create --expose 5000 --env PORT=5000 --name="$KDH_CONTAINER_NAME" "$KDH_REGISTRY_IMAGE:$KDH_SHA" /bin/herokuish procfile start web
+    docker commit "$KDH_CONTAINER_NAME" "$KDH_REGISTRY_IMAGE:$KDH_SHA"
+    docker rm "$KDH_CONTAINER_NAME" >/dev/null
 
     echo "Pushing to GitLab Container Registry"
-    docker push "$CI_REGISTRY_IMAGE:$CI_REGISTRY_TAG"
+    docker push "$KDH_REGISTRY_IMAGE:$KDH_SHA"
 fi
