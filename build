@@ -29,7 +29,6 @@ set_buildargs
 echo "Logging to Container Registry with CI credentials..."
 docker login -u "$KDH_REGISTRY_USER" -p "$KDH_REGISTRY_PASSWORD" "$KDH_REGISTRY"
 echo ""
-fi
 
 echo "Building application..."
 
