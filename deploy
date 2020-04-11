@@ -38,7 +38,7 @@ EOF
 
 echo "Creating registry secret"
 kubectl create secret -n $KDH_KUBE_NAMESPACE \
-  docker-registry gitlab-registry \
+  docker-registry docker-registry-$KDH_REPO_NAME \
   --docker-server="$KDH_REGISTRY" \
   --docker-username="$KDH_REGISTRY_USER" \
   --docker-password="$KDH_REGISTRY_PASSWORD" \
