@@ -293,7 +293,7 @@ get_secrets_for_usage() {
       echo "- name: $key" >> /tmp/secrets.yaml
       echo "  valueFrom:" >> /tmp/secrets.yaml
       echo "    secretKeyRef:" >> /tmp/secrets.yaml
-      echo "      name: $KDH_KUBE_NAMESPACE-secrets-$KDH_STAGE" >> /tmp/secrets.yaml
+      echo "      name: $KDH_REPO_NAME-secrets-$KDH_STAGE" >> /tmp/secrets.yaml
       echo "      key: $key" >> /tmp/secrets.yaml
     done
   fi
@@ -309,7 +309,7 @@ get_secrets_for_usage() {
       echo "- name: $key" >> /tmp/secrets.yaml
       echo "  valueFrom:" >> /tmp/secrets.yaml
       echo "    secretKeyRef:" >> /tmp/secrets.yaml
-      echo "      name: $KDH_KUBE_NAMESPACE-secrets-$KDH_STAGE" >> /tmp/secrets.yaml
+      echo "      name: $KDH_REPO_NAME-secrets-$KDH_STAGE" >> /tmp/secrets.yaml
       echo "      key: $key" >> /tmp/secrets.yaml
     done
   fi
