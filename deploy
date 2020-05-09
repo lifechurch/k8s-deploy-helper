@@ -34,6 +34,8 @@ kind: Namespace
 apiVersion: v1
 metadata:
   name: $KDH_KUBE_NAMESPACE
+  annotations:
+    linkerd.io/inject: enabled
 EOF
 
 echo "Creating registry secret"
