@@ -89,6 +89,7 @@ buildargs_from() {
         key=$(echo $stripped | cut -d'=' -f1)
         if env | grep -i -e "^$key="; then
             continue
+        fi
         value=$(echo -n "${!fullkey}")
         echo "Exporting $key as BUILDARG_$key"
         export BUILDARG_$stripped
