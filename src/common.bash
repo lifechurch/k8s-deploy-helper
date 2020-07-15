@@ -75,6 +75,9 @@ buildargs_from() {
         fullkey=$(echo $i | cut -d'=' -f1)
         stripped=$(echo $i | cut -d'_' -f2-)
         key=$(echo $stripped | cut -d'=' -f1)
+        if env | grep -i -e "^$key="; then
+            continue
+        fi
         value=$(echo -n "${!fullkey}")
         echo "Exporting $key as BUILDARG_$key"
         export BUILDARG_$stripped
@@ -87,6 +90,9 @@ buildargs_from() {
         fullkey=$(echo $i | cut -d'=' -f1)
         stripped=$(echo $i | cut -d'_' -f2-)
         key=$(echo $stripped | cut -d'=' -f1)
+        if env | grep -i -e "^$key="; then
+            continue
+        fi
         value=$(echo -n "${!fullkey}")
         echo "Exporting $key as BUILDARG_$key"
         export BUILDARG_$stripped
@@ -243,6 +249,9 @@ get_secrets_for_creation() {
       fullkey=$(echo $i | cut -d'=' -f1)
       stripped=$(echo $i | cut -d'_' -f2-)
       key=$(echo $stripped | cut -d'=' -f1)
+      if env | grep -i -e "^$key="; then
+        continue
+      fi
       value=$(echo -n "${!fullkey}" | base64 -w 0)
       echo "  $key: $value"
     done
@@ -269,6 +278,9 @@ get_secrets_for_usage() {
       fullkey=$(echo $i | cut -d'=' -f1)
       stripped=$(echo $i | cut -d'_' -f2-)
       key=$(echo $stripped | cut -d'=' -f1)
+      if env | grep -i -e "^$key="; then
+        continue
+      fi
       value=$(echo -n "${!fullkey}" | base64 -w 0)
       echo "- name: $key" >> /tmp/secrets.yaml
       echo "  valueFrom:" >> /tmp/secrets.yaml
